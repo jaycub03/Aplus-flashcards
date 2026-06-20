@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="A+ Flashcards">
+<meta name="theme-color" content="#1E2229">
+<title>A+ Flashcards</title>
+<style>
+body { margin: 0; padding: 12px; background: #1E2229; -webkit-text-size-adjust: 100%; }
+</style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+.fc-root {
+  --bg: #1E2229;
+  --panel: #262B33;
+  --panel-2: #2F3540;
+  --hairline: #3A4150;
+  --paper: #ECE6D6;
+  --paper-2: #DDD4BC;
+  --ink: #2A2520;
+  --ink-dim: #6B645A;
+  --copper: #C97A3D;
+  --copper-soft: #E0A765;
+  --resolved: #4F8B6B;
+  --sla: #B5503D;
+  --text: #D8D3C4;
+  --text-dim: #8E8A7C;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --sans: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  border-radius: 12px;
+  max-width: 560px;
+  margin: 0 auto;
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.fc-root * { box-sizing: border-box; }
+
+.fc-header {
+  padding: 18px 22px 14px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-bottom: 1px solid var(--hairline);
+}
+.fc-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--copper-soft);
+  margin: 0 0 3px;
+}
+.fc-subtitle { font-size: 13px; color: var(--text-dim); margin: 0; }
+
+.fc-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.fc-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-chip:hover { color: var(--text); }
+.fc-chip.active { border-color: var(--copper); color: var(--copper-soft); background: rgba(201,122,61,0.1); }
+.fc-chip.struggling.active { border-color: var(--sla); color: var(--sla); background: rgba(181,80,61,0.1); }
+
+.fc-day-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--hairline);
+  width: 100%;
+}
+.fc-daychip {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-daychip:hover { color: var(--text); }
+.fc-daychip.active { border-color: var(--resolved); color: var(--resolved-soft); background: rgba(79,139,107,0.1); }
+
+.fc-stage {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg);
+}
+
+.fc-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.fc-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 40px 10px;
+}
+
+.fc-card-wrap {
+  width: 100%;
+  max-width: 420px;
+  height: 230px;
+  perspective: 1400px;
+}
+.fc-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
+}
+.fc-card:focus-visible { outline: 2px solid var(--copper); outline-offset: 4px; }
+.fc-card.flipped { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-card { transition: none; }
+}
+
+.fc-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  backface-visibility: hidden;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,0.55);
+}
+.fc-face.back { transform: rotateY(180deg); background: var(--paper-2); }
+
+.fc-tab {
+  position: absolute;
+  top: -1px;
+  right: 18px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 3px 8px 4px;
+  border-radius: 0 0 4px 4px;
+}
+
+.fc-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.fc-text {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.fc-face.back .fc-text { font-size: 15px; font-weight: 500; }
+.fc-hint {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+  font-family: var(--mono);
+}
+
+.fc-rate-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  width: 100%;
+  max-width: 420px;
+  visibility: hidden;
+}
+.fc-rate-row.show { visibility: visible; }
+.fc-rate {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: 1px solid var(--hairline);
+  background: var(--panel);
+  color: var(--text);
+}
+.fc-rate.shaky:hover { border-color: var(--sla); color: var(--sla); }
+.fc-rate.got-it:hover { border-color: var(--resolved); color: var(--resolved); }
+
+.fc-nav-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.fc-nav-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-nav-btn:hover { color: var(--text); border-color: var(--copper-soft); }
+
+.fc-footer {
+  padding: 14px 22px 18px;
+  background: var(--panel);
+  border-top: 1px solid var(--hairline);
+}
+.fc-progress-track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.fc-progress-fill { height: 100%; background: linear-gradient(90deg, var(--copper), var(--resolved)); }
+.fc-progress-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.fc-reset {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: var(--mono);
+}
+.fc-reset:hover { border-color: var(--sla); color: var(--sla); }
+</style>
+</head>
+<body>
+
+<div class="fc-root">
+  <div class="fc-header">
+    <p class="fc-title">A+ Quick-Reference Cards</p>
+    <p class="fc-subtitle">Every "Memorize" line from your study queue, atomized into one fact per card.</p>
+    <div class="fc-filters" id="fc-filters"></div>
+  </div>
+
+  <div class="fc-stage">
+    <div class="fc-counter" id="fc-counter">Card 1 of 1</div>
+    <div id="fc-stage-inner"></div>
+  </div>
+
+  <div class="fc-footer">
+    <div class="fc-progress-track"><div class="fc-progress-fill" id="fc-progress-fill" style="width:0%"></div></div>
+    <div class="fc-progress-label"><span id="fc-progress-text">0 / 0 marked "got it"</span><span>this view</span></div>
+    <button class="fc-reset" id="fc-reset">Reset all ratings</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const self = document.querySelector('.fc-root');
+
+  const CARDS = [
+    {id:1, week:1, day:1, exam:'1201', ref:'§1.1–1.2', q:'What is the typical range of NFC?', a:'A few centimeters — close enough to "tap" two devices together.'},
+    {id:2, week:1, day:1, exam:'1201', ref:'§1.1–1.2', q:'What is the typical range of Bluetooth?', a:'Roughly 10 meters (about 30 feet) for common Class 2 devices.'},
+    {id:3, week:1, day:1, exam:'1201', ref:'§1.1–1.2', q:'What is RFID commonly used for in IT and business settings?', a:'Asset tracking and inventory — tags can be read from centimeters up to many meters depending on the tag type.'},
+    {id:4, week:1, day:1, exam:'1201', ref:'§1.1–1.2', q:'Which short-range wireless technology is used for tap-to-pay and tap-to-pair?', a:'NFC.'},
+    {id:5, week:1, day:2, exam:'1201', ref:'§1.3', q:'What does BYOD mean?', a:'Bring Your Own Device — employees use personal devices for work.'},
+    {id:6, week:1, day:2, exam:'1201', ref:'§1.3', q:'What does COPE mean?', a:'Corporate-Owned, Personally Enabled — the company owns the device but allows personal use.'},
+    {id:7, week:1, day:2, exam:'1201', ref:'§1.3', q:'What is the purpose of MDM?', a:'To centrally manage, secure, and enforce policy on an organization\'s mobile devices, including remote wipe and app control.'},
+    {id:8, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does FTP use?', a:'21'},
+    {id:9, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SSH use?', a:'22'},
+    {id:10, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does Telnet use?', a:'23'},
+    {id:11, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SMTP use?', a:'25'},
+    {id:12, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does DNS use?', a:'53'},
+    {id:13, week:1, day:3, exam:'1201', ref:'§2.1', q:'What ports does DHCP use?', a:'67 (server) and 68 (client)'},
+    {id:14, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does HTTP use?', a:'80'},
+    {id:15, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does HTTPS use?', a:'443'},
+    {id:16, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does POP3 use?', a:'110'},
+    {id:17, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does IMAP use?', a:'143'},
+    {id:18, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SMB use?', a:'445'},
+    {id:19, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does LDAP use?', a:'389'},
+    {id:20, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does RDP use?', a:'3389'},
+    {id:114, week:1, day:3, exam:'1201', ref:'§2.1', q:'What is the well-known (non-ephemeral) port range?', a:'0–1023'},
+    {id:115, week:1, day:3, exam:'1201', ref:'§2.1', q:'What is the ephemeral (client) port range?', a:'1024–65535'},
+    {id:116, week:1, day:3, exam:'1201', ref:'§2.1', q:'What is the key difference between TCP and UDP?', a:'TCP is connection-oriented and reliable (handshake, acknowledgments, retransmission, flow control); UDP is connectionless and unreliable, with less overhead.'},
+    {id:117, week:1, day:3, exam:'1201', ref:'§2.1', q:'Why do real-time apps like VoIP prefer UDP over TCP?', a:'Lower overhead, and a dropped packet in real time cannot be replayed anyway, so reliability is not worth the cost.'},
+    {id:118, week:1, day:3, exam:'1201', ref:'§2.1', q:'What three pieces of information together identify a specific network conversation?', a:'The IP address, the protocol (TCP or UDP), and the port number.'},
+    {id:119, week:1, day:3, exam:'1201', ref:'§2.1', q:'Are port numbers a security mechanism?', a:'No — they just route traffic to the right service; changing one does not meaningfully hide it.'},
+    {id:21, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a DNS server do?', a:'Translates domain names into IP addresses.'},
+    {id:22, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a DHCP server do?', a:'Automatically assigns IP addresses and network settings to devices.'},
+    {id:23, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a print server do?', a:'Manages and queues print jobs from multiple clients to shared printers.'},
+    {id:24, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a mail server do?', a:'Sends, receives, and stores email for users.'},
+    {id:25, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a web server do?', a:'Hosts and serves web content to clients over HTTP/HTTPS.'},
+    {id:26, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an A record do?', a:'Maps a hostname to an IPv4 address.'},
+    {id:27, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an AAAA record do?', a:'Maps a hostname to an IPv6 address.'},
+    {id:28, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a CNAME record do?', a:'Maps an alias hostname to another (canonical) hostname.'},
+    {id:29, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an MX record do?', a:'Specifies which mail server handles email for a domain.'},
+    {id:30, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an SPF record do?', a:'Lists which mail servers are allowed to send email for a domain.'},
+    {id:31, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a DKIM record do?', a:'Adds a digital signature to outgoing mail to prove it was not altered.'},
+    {id:32, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a DMARC record do?', a:'Tells receiving servers how to handle mail that fails SPF or DKIM checks.'},
+    {id:33, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the Class A private IP range?', a:'10.0.0.0 to 10.255.255.255'},
+    {id:34, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the Class B private IP range?', a:'172.16.0.0 to 172.31.255.255'},
+    {id:35, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the Class C private IP range?', a:'192.168.0.0 to 192.168.255.255'},
+    {id:36, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the APIPA range, and when is it assigned?', a:'169.254.0.0 to 169.254.255.255 — assigned automatically when a device cannot reach a DHCP server.'},
+    {id:37, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a crimper used for?', a:'Attaching connectors, like RJ45, to the end of a network cable.'},
+    {id:38, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a punch-down tool used for?', a:'Pushing wires into a punch-down block or patch panel.'},
+    {id:39, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a cable tester used for?', a:'Verifying a cable is wired correctly end-to-end.'},
+    {id:40, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a loopback plug used for?', a:'Testing a port by looping its send signal back into its receive line.'},
+    {id:41, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a tone generator and probe used for?', a:'Tracing a specific cable through a bundle or wall.'},
+    {id:42, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is the difference between T568A and T568B?', a:'Same 8 wires, but the orange and green pairs are swapped — both ends just need to match.'},
+    {id:43, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is the difference between multimode and single-mode fiber?', a:'Multimode has a larger core for shorter distances (LED light, cheaper); single-mode has a smaller core for long distances (laser light, pricier).'},
+    {id:44, week:2, day:9, exam:'1201', ref:'§3.2', q:'What do HDMI and DisplayPort have in common?', a:'Both carry digital video and audio over a single cable.'},
+    {id:45, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is the difference between DVI and VGA?', a:'DVI carries digital video only; VGA carries analog video only.'},
+    {id:46, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is the difference between USB-C and USB-A?', a:'USB-C is reversible and supports higher power and data rates; USB-A is the older, one-direction rectangular connector.'},
+    {id:47, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is the difference between SATA and eSATA?', a:'SATA connects internal drives; eSATA is the external version of the same interface.'},
+    {id:48, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 0 provide?', a:'Striping for speed only — no redundancy, so one drive failure loses all data.'},
+    {id:49, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 1 provide?', a:'Mirroring — full redundancy by duplicating data across two drives.'},
+    {id:50, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 5 provide?', a:'Striping with parity across three or more drives — survives one drive failure.'},
+    {id:51, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 6 provide?', a:'Striping with double parity — survives two drive failures.'},
+    {id:52, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 1+0 (RAID 10) provide?', a:'Mirrored pairs that are then striped together — combines redundancy and speed.'},
+    {id:53, week:2, day:11, exam:'1201', ref:'§3.5', q:'Order ATX, micro-ATX, and Mini-ITX from largest to smallest.', a:'ATX, then micro-ATX, then Mini-ITX.'},
+    {id:54, week:2, day:11, exam:'1201', ref:'§3.5', q:'What is the key difference between PCI and PCIe?', a:'PCI is an older shared parallel bus; PCIe is a faster serial point-to-point connection used in modern systems.'},
+    {id:55, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is a TPM used for?', a:'Hardware-based storage of encryption keys and secure boot or cryptographic functions.'},
+    {id:56, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is the practical difference between 32-bit and 64-bit processors?', a:'64-bit can address far more RAM and run 64-bit software; 32-bit is limited to about 4GB of addressable RAM.'},
+    {id:57, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is the main tradeoff between air cooling and liquid cooling?', a:'Air cooling is simpler and cheaper; liquid cooling is quieter and handles more heat, but costs more and carries a small leak risk.'},
+    {id:58, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What are the laser printer imaging steps, in order?', a:'Processing, Charging, Exposing, Developing, Transferring, Fusing, Cleaning.'},
+    {id:59, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What does a power supply efficiency rating (like 80 Plus) tell you?', a:'How much input power becomes usable output power versus being wasted as heat.'},
+    {id:60, week:2, day:14, exam:'1201', ref:'§3.8 cont.', q:'What commonly causes faded or blank output on a thermal printer?', a:'A worn heating element or using non-thermal paper.'},
+    {id:61, week:2, day:14, exam:'1201', ref:'§3.8 cont.', q:'What are the main wear parts on a dot-matrix (impact) printer?', a:'The print head, ribbon, and tractor feed mechanism.'},
+    {id:62, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is the difference between a Type 1 and Type 2 hypervisor?', a:'Type 1 runs directly on the hardware; Type 2 runs on top of a host operating system.'},
+    {id:63, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does IaaS provide?', a:'Rented virtual infrastructure — servers, storage, and networking.'},
+    {id:64, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does PaaS provide?', a:'A managed platform for building and running applications without managing the underlying infrastructure.'},
+    {id:65, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does SaaS provide?', a:'Fully managed, ready-to-use software delivered over the internet.'},
+    {id:66, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What are CompTIA\'s six troubleshooting methodology steps, in order?', a:'Identify the problem; establish a theory of probable cause; test the theory; establish a plan of action; verify full system functionality; document findings.'},
+    {id:67, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What is POST?', a:'Power-On Self-Test — hardware checks a computer runs at startup.'},
+    {id:68, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What is a BSoD?', a:'Blue Screen of Death — a Windows stop error showing a critical system failure.'},
+    {id:69, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does S.M.A.R.T. monitor?', a:'A drive\'s health indicators, used to predict failure in advance.'},
+    {id:70, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does IOPS measure?', a:'A storage device\'s input/output operations per second — its performance.'},
+    {id:71, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What is the difference between screen burn-in and a dead pixel?', a:'Burn-in is a temporary or permanent ghost image from static content; a dead pixel never lights up at all.'},
+    {id:72, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What problem does a faulty digitizer cause?', a:'Touch input that does not register, or registers in the wrong location.'},
+    {id:73, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What is the difference between latency and jitter?', a:'Latency is the delay for data to travel; jitter is how much that delay varies over time.'},
+    {id:74, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What commonly causes a stuck print queue?', a:'A corrupted print job or a stopped print spooler service.'},
+    {id:75, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system does modern Windows use by default?', a:'NTFS.'},
+    {id:76, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What is exFAT typically used for?', a:'Flash or external drives that need to work across Windows, macOS, and other systems without FAT32\'s file-size limits.'},
+    {id:77, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system is commonly used on Linux?', a:'ext4.'},
+    {id:78, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system does macOS use?', a:'APFS.'},
+    {id:79, week:4, day:23, exam:'1202', ref:'§1.3–1.4', q:'What does Windows Pro add over Windows Home?', a:'Business features like BitLocker, Remote Desktop hosting, and the ability to join a domain.'},
+    {id:80, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does ipconfig /all show?', a:'Full network configuration — IP, subnet, gateway, DNS, MAC address, and DHCP lease info.'},
+    {id:81, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does ping do?', a:'Tests basic connectivity to another host using ICMP echo requests.'},
+    {id:82, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does netstat show?', a:'Active network connections and listening ports.'},
+    {id:83, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does nslookup do?', a:'Queries DNS to resolve a hostname to an IP address.'},
+    {id:84, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does tracert (or traceroute) do?', a:'Shows the hop-by-hop path packets take to a destination.'},
+    {id:85, week:4, day:25, exam:'1202', ref:'§1.6–1.7', q:'What is the difference between a Workgroup and a Domain?', a:'A Workgroup is a small peer-to-peer group with local accounts; a Domain is centrally managed (Active Directory) with centralized accounts and policy.'},
+    {id:86, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does ls do in Linux?', a:'Lists files and directories in the current location.'},
+    {id:87, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does pwd do in Linux?', a:'Prints the current working directory path.'},
+    {id:88, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does cp do in Linux?', a:'Copies a file or directory.'},
+    {id:89, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does mv do in Linux?', a:'Moves or renames a file or directory.'},
+    {id:90, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does rm do in Linux?', a:'Deletes a file or directory.'},
+    {id:91, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does chmod do in Linux?', a:'Changes a file or directory\'s permissions.'},
+    {id:92, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does grep do in Linux?', a:'Searches text for a matching pattern.'},
+    {id:93, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is the principle of least privilege?', a:'Giving users only the access they need to do their job, nothing more.'},
+    {id:94, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is Zero Trust?', a:'A security model that verifies every request and never automatically trusts a user or device, even inside the network.'},
+    {id:95, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is MFA?', a:'Multi-Factor Authentication — requiring two or more proof types to log in.'},
+    {id:96, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'NTFS permissions vs Share permissions — what is the difference, and which wins when combined?', a:'NTFS applies locally regardless of access method; Share only applies over the network. The more restrictive of the two wins.'},
+    {id:97, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is the main improvement of WPA3 over WPA2?', a:'Stronger encryption and protection against offline password-guessing attacks.'},
+    {id:98, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is a trojan horse?', a:'Malware disguised as legitimate software to trick users into installing it.'},
+    {id:99, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is a rootkit?', a:'Malware that hides deep in the system to maintain hidden, persistent access.'},
+    {id:100, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is spyware?', a:'Malware that secretly monitors and collects user activity or information.'},
+    {id:101, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is ransomware?', a:'Malware that encrypts a victim\'s data and demands payment for the decryption key.'},
+    {id:102, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is the difference between phishing, tailgating, and shoulder surfing?', a:'Phishing is fraudulent messages tricking someone into giving up information; tailgating is following someone through a secured door without authorization; shoulder surfing is visually spying on entered credentials.'},
+    {id:103, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What are the general steps to remove malware?', a:'Identify symptoms, quarantine the system, disable System Restore, remediate (update and scan), schedule future scans, re-enable System Restore, and educate the user.'},
+    {id:104, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What does full device encryption protect against?', a:'Someone with physical access to a lost or stolen device reading its data.'},
+    {id:105, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What is a certificate of destruction?', a:'Documented proof that a storage device was properly and securely destroyed.'},
+    {id:106, week:5, day:31, exam:'1202', ref:'§3.1–3.4', q:'What is a sensible first step for repeated BSoDs?', a:'Check Event Viewer for recent driver or hardware changes, and try booting into Safe Mode to isolate the cause.'},
+    {id:107, week:5, day:31, exam:'1202', ref:'§3.1–3.4', q:'What is the right response to a fake antivirus pop-up?', a:'Close it via Task Manager, run a scan with legitimate anti-malware software, and confirm the real AV is still intact.'},
+    {id:108, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'What is the difference between full, differential, and incremental backups?', a:'Full backs up everything; differential backs up everything changed since the last full; incremental backs up only what changed since the last backup of any type.'},
+    {id:109, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'What is the 3-2-1 backup rule?', a:'Keep 3 copies of data, on 2 different media types, with 1 copy stored offsite.'},
+    {id:110, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'How do you prevent ESD damage?', a:'Use an anti-static wrist strap or mat and ground yourself before touching internal components.'},
+    {id:111, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What is chain of custody?', a:'A documented trail of who handled evidence, when, and how, to preserve its integrity.'},
+    {id:112, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What is order of volatility?', a:'The sequence for collecting evidence from most to least likely to be lost — typically RAM before disk before logs or backups.'},
+    {id:113, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What does a EULA define?', a:'The terms a user agrees to in order to legally use a piece of software.'},
+  ];
+
+  let mastery = {};
+  let activeFilter = 1;
+  let activeDay = null;
+  let strugglingOnly = false;
+  let deck = [];
+  let pos = 0;
+  let flipped = false;
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function currentWeekByDate() {
+    const today = new Date();
+    const t = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+    const ranges = [
+      [1, '2026-06-19', '2026-06-25'], [2, '2026-06-26', '2026-07-02'],
+      [3, '2026-07-03', '2026-07-09'], [4, '2026-07-10', '2026-07-16'],
+      [5, '2026-07-17', '2026-07-23']
+    ];
+    for (const [w, start, end] of ranges) { if (t <= end) return w; }
+    return 5;
+  }
+
+  const DAY_DATES = {
+    1:'2026-06-19',2:'2026-06-20',3:'2026-06-21',4:'2026-06-22',5:'2026-06-23',6:'2026-06-24',7:'2026-06-25',
+    8:'2026-06-26',9:'2026-06-27',10:'2026-06-28',11:'2026-06-29',12:'2026-06-30',13:'2026-07-01',14:'2026-07-02',
+    15:'2026-07-03',16:'2026-07-04',17:'2026-07-05',18:'2026-07-06',19:'2026-07-07',20:'2026-07-08',21:'2026-07-09',
+    22:'2026-07-10',23:'2026-07-11',24:'2026-07-12',25:'2026-07-13',26:'2026-07-14',27:'2026-07-15',28:'2026-07-16',
+    29:'2026-07-17',30:'2026-07-18',31:'2026-07-19',32:'2026-07-20',33:'2026-07-21',34:'2026-07-22',35:'2026-07-23'
+  };
+  function currentDayId() {
+    const today = new Date();
+    const t = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+    const daysWithCards = [...new Set(CARDS.map(c => c.day))].sort((a,b)=>a-b);
+    let best = daysWithCards[0];
+    for (const d of daysWithCards) { if (DAY_DATES[d] <= t) best = d; else break; }
+    return best;
+  }
+
+  async function loadMastery() {
+    try {
+      const raw = localStorage.getItem('aplus-flashcards');
+      if (raw) mastery = JSON.parse(raw);
+    } catch (e) { mastery = {}; }
+  }
+  async function saveMastery() {
+    try { localStorage.setItem('aplus-flashcards', JSON.stringify(mastery)); } catch (e) {}
+  }
+
+  function shuffleArr(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function buildDeck() {
+    let pool = activeFilter === 'all' ? CARDS.slice() : CARDS.filter(c => c.week === activeFilter);
+    if (activeFilter !== 'all' && activeDay !== null) pool = pool.filter(c => c.day === activeDay);
+    if (strugglingOnly) pool = pool.filter(c => mastery[c.id] === false);
+    deck = pool;
+    pos = 0;
+    flipped = false;
+  }
+
+  function renderFilters() {
+    const wrap = self.querySelector('#fc-filters');
+    wrap.innerHTML = '';
+    const weeks = [1,2,3,4,5];
+    weeks.forEach(w => {
+      const b = document.createElement('button');
+      b.className = 'fc-chip' + (activeFilter === w ? ' active' : '');
+      b.textContent = 'Week ' + w;
+      b.addEventListener('click', () => { activeFilter = w; activeDay = null; buildDeck(); render(); });
+      wrap.appendChild(b);
+    });
+    const allBtn = document.createElement('button');
+    allBtn.className = 'fc-chip' + (activeFilter === 'all' ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.addEventListener('click', () => { activeFilter = 'all'; activeDay = null; buildDeck(); render(); });
+    wrap.appendChild(allBtn);
+
+    const strBtn = document.createElement('button');
+    strBtn.className = 'fc-chip struggling' + (strugglingOnly ? ' active' : '');
+    strBtn.textContent = 'Struggling only';
+    strBtn.addEventListener('click', () => { strugglingOnly = !strugglingOnly; buildDeck(); render(); });
+    wrap.appendChild(strBtn);
+
+    if (activeFilter !== 'all') {
+      const dayWrap = document.createElement('div');
+      dayWrap.className = 'fc-day-row';
+      const wholeBtn = document.createElement('button');
+      wholeBtn.className = 'fc-daychip' + (activeDay === null ? ' active' : '');
+      wholeBtn.textContent = 'Whole week';
+      wholeBtn.addEventListener('click', () => { activeDay = null; buildDeck(); render(); });
+      dayWrap.appendChild(wholeBtn);
+      const daysInWeek = [...new Set(CARDS.filter(c => c.week === activeFilter).map(c => c.day))].sort((a,b)=>a-b);
+      daysInWeek.forEach(d => {
+        const db = document.createElement('button');
+        db.className = 'fc-daychip' + (activeDay === d ? ' active' : '');
+        db.textContent = 'Day ' + d;
+        db.addEventListener('click', () => { activeDay = d; buildDeck(); render(); });
+        dayWrap.appendChild(db);
+      });
+      wrap.appendChild(dayWrap);
+    }
+  }
+
+  function renderStage() {
+    const inner = self.querySelector('#fc-stage-inner');
+    const counter = self.querySelector('#fc-counter');
+    inner.innerHTML = '';
+
+    if (deck.length === 0) {
+      counter.textContent = '';
+      const empty = document.createElement('div');
+      empty.className = 'fc-empty';
+      empty.textContent = strugglingOnly
+        ? 'Nothing marked "still shaky" in this view yet. Flip some cards and rate them honestly — the tricky ones will show up here.'
+        : 'No cards in this view.';
+      inner.appendChild(empty);
+      return;
+    }
+
+    counter.textContent = 'Card ' + (pos + 1) + ' of ' + deck.length;
+    const card = deck[pos];
+
+    const wrap = document.createElement('div');
+    wrap.className = 'fc-card-wrap';
+    const cardEl = document.createElement('div');
+    cardEl.className = 'fc-card' + (flipped ? ' flipped' : '');
+    cardEl.tabIndex = 0;
+    cardEl.innerHTML =
+      '<div class="fc-face front">' +
+        '<div class="fc-tab">' + card.exam + ' ' + card.ref + '</div>' +
+        '<div class="fc-label">Question</div>' +
+        '<div class="fc-text">' + card.q + '</div>' +
+        '<div class="fc-hint">Tap to reveal</div>' +
+      '</div>' +
+      '<div class="fc-face back">' +
+        '<div class="fc-tab">' + card.exam + ' ' + card.ref + '</div>' +
+        '<div class="fc-label">Answer</div>' +
+        '<div class="fc-text">' + card.a + '</div>' +
+      '</div>';
+    function toggleFlip() { flipped = !flipped; cardEl.classList.toggle('flipped', flipped); rateRow.classList.toggle('show', flipped); }
+    cardEl.addEventListener('click', toggleFlip);
+    cardEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFlip(); } });
+    wrap.appendChild(cardEl);
+    inner.appendChild(wrap);
+
+    const rateRow = document.createElement('div');
+    rateRow.className = 'fc-rate-row' + (flipped ? ' show' : '');
+    rateRow.innerHTML =
+      '<button class="fc-rate shaky">Still shaky</button>' +
+      '<button class="fc-rate got-it">Got it</button>';
+    rateRow.querySelector('.shaky').addEventListener('click', () => rate(card.id, false));
+    rateRow.querySelector('.got-it').addEventListener('click', () => rate(card.id, true));
+    inner.appendChild(rateRow);
+
+    const navRow = document.createElement('div');
+    navRow.className = 'fc-nav-row';
+    navRow.innerHTML =
+      '<button class="fc-nav-btn" id="fc-prev">‹ Prev</button>' +
+      '<button class="fc-nav-btn" id="fc-shuffle">Shuffle</button>' +
+      '<button class="fc-nav-btn" id="fc-next">Next ›</button>';
+    inner.appendChild(navRow);
+    navRow.querySelector('#fc-prev').addEventListener('click', () => { pos = (pos - 1 + deck.length) % deck.length; flipped = false; renderStage(); });
+    navRow.querySelector('#fc-next').addEventListener('click', () => { pos = (pos + 1) % deck.length; flipped = false; renderStage(); });
+    navRow.querySelector('#fc-shuffle').addEventListener('click', () => { deck = shuffleArr(deck); pos = 0; flipped = false; renderStage(); });
+  }
+
+  function rate(id, gotIt) {
+    mastery[id] = gotIt;
+    saveMastery();
+    if (strugglingOnly && gotIt) {
+      deck = deck.filter(c => c.id !== id);
+      if (pos >= deck.length) pos = 0;
+    } else {
+      pos = (pos + 1) % Math.max(deck.length, 1);
+    }
+    flipped = false;
+    renderStage();
+    renderFooter();
+  }
+
+  function renderFooter() {
+    const total = deck.length || 1;
+    const known = deck.filter(c => mastery[c.id] === true).length;
+    self.querySelector('#fc-progress-fill').style.width = Math.round((known / total) * 100) + '%';
+    self.querySelector('#fc-progress-text').textContent = known + ' / ' + deck.length + ' marked "got it"';
+  }
+
+  function render() {
+    renderFilters();
+    renderStage();
+    renderFooter();
+  }
+
+  self.querySelector('#fc-reset').addEventListener('click', () => {
+    if (confirm('Clear all "got it / still shaky" ratings? This cannot be undone.')) {
+      mastery = {};
+      saveMastery();
+      render();
+    }
+  });
+
+  (async function init() {
+    await loadMastery();
+    activeFilter = currentWeekByDate();
+    activeDay = currentDayId();
+    buildDeck();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
