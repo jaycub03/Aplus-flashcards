@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="A+ Flashcards">
+<meta name="theme-color" content="#1E2229">
+<title>A+ Flashcards</title>
+<style>
+body { margin: 0; padding: 12px; background: #1E2229; -webkit-text-size-adjust: 100%; }
+</style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+.fc-root {
+  --bg: #1E2229;
+  --panel: #262B33;
+  --panel-2: #2F3540;
+  --hairline: #3A4150;
+  --paper: #ECE6D6;
+  --paper-2: #DDD4BC;
+  --ink: #2A2520;
+  --ink-dim: #6B645A;
+  --copper: #C97A3D;
+  --copper-soft: #E0A765;
+  --resolved: #4F8B6B;
+  --sla: #B5503D;
+  --text: #D8D3C4;
+  --text-dim: #8E8A7C;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --sans: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  border-radius: 12px;
+  max-width: 560px;
+  margin: 0 auto;
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.fc-root * { box-sizing: border-box; }
+
+.fc-header {
+  padding: 18px 22px 14px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border-bottom: 1px solid var(--hairline);
+}
+.fc-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--copper-soft);
+  margin: 0 0 3px;
+}
+.fc-subtitle { font-size: 13px; color: var(--text-dim); margin: 0; }
+
+.fc-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.fc-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-chip:hover { color: var(--text); }
+.fc-chip.active { border-color: var(--copper); color: var(--copper-soft); background: rgba(201,122,61,0.1); }
+.fc-chip.struggling.active { border-color: var(--sla); color: var(--sla); background: rgba(181,80,61,0.1); }
+
+.fc-day-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--hairline);
+  width: 100%;
+}
+.fc-daychip {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-daychip:hover { color: var(--text); }
+.fc-daychip.active { border-color: var(--resolved); color: var(--resolved-soft); background: rgba(79,139,107,0.1); }
+
+.fc-stage {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg);
+}
+
+.fc-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.fc-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 40px 10px;
+}
+
+.fc-card-wrap {
+  width: 100%;
+  max-width: 420px;
+  height: 230px;
+  perspective: 1400px;
+}
+.fc-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
+}
+.fc-card:focus-visible { outline: 2px solid var(--copper); outline-offset: 4px; }
+.fc-card.flipped { transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-card { transition: none; }
+}
+
+.fc-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  backface-visibility: hidden;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,0.55);
+}
+.fc-face.back { transform: rotateY(180deg); background: var(--paper-2); }
+
+.fc-tab {
+  position: absolute;
+  top: -1px;
+  right: 18px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 3px 8px 4px;
+  border-radius: 0 0 4px 4px;
+}
+
+.fc-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.fc-text {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.fc-face.back .fc-text { font-size: 15px; font-weight: 500; }
+.fc-hint {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+  font-family: var(--mono);
+}
+
+.fc-rate-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  width: 100%;
+  max-width: 420px;
+  visibility: hidden;
+}
+.fc-rate-row.show { visibility: visible; }
+.fc-rate {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: 1px solid var(--hairline);
+  background: var(--panel);
+  color: var(--text);
+}
+.fc-rate.shaky:hover { border-color: var(--sla); color: var(--sla); }
+.fc-rate.got-it:hover { border-color: var(--resolved); color: var(--resolved); }
+
+.fc-nav-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.fc-nav-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.fc-nav-btn:hover { color: var(--text); border-color: var(--copper-soft); }
+
+.fc-footer {
+  padding: 14px 22px 18px;
+  background: var(--panel);
+  border-top: 1px solid var(--hairline);
+}
+.fc-progress-track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.fc-progress-fill { height: 100%; background: linear-gradient(90deg, var(--copper), var(--resolved)); }
+.fc-progress-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.fc-reset {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: var(--mono);
+}
+.fc-reset:hover { border-color: var(--sla); color: var(--sla); }
+</style>
+</head>
+<body>
+
+<div class="fc-root">
+  <div class="fc-header">
+    <p class="fc-title">A+ Quick-Reference Cards</p>
+    <p class="fc-subtitle">Every "Memorize" line from your study queue, atomized into one fact per card.</p>
+    <div class="fc-filters" id="fc-filters"></div>
+  </div>
+
+  <div class="fc-stage">
+    <div class="fc-counter" id="fc-counter">Card 1 of 1</div>
+    <div id="fc-stage-inner"></div>
+  </div>
+
+  <div class="fc-footer">
+    <div class="fc-progress-track"><div class="fc-progress-fill" id="fc-progress-fill" style="width:0%"></div></div>
+    <div class="fc-progress-label"><span id="fc-progress-text">0 / 0 marked "got it"</span><span>this view</span></div>
+    <button class="fc-reset" id="fc-reset">Reset all ratings</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const self = document.querySelector('.fc-root');
+
+  const CARDS = [
+    {id:350, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'How many pins does a USB-C connector have?', a:'24.'},
+    {id:351, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What can a single USB-C connector carry besides standard USB data?', a:'DisplayPort, HDMI, and Thunderbolt signals, among others.'},
+    {id:352, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What\'s distinctive about how a USB-C plug inserts?', a:'It\'s reversible — it can be inserted in either orientation.'},
+    {id:353, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'How many pins does Apple\'s Lightning connector have?', a:'8.'},
+    {id:354, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What two advantages did Lightning have over older USB connectors when introduced?', a:'Higher power output for faster charging, and it could be inserted either way.'},
+    {id:355, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What is NFC commonly used for on a mobile device?', a:'Contactless payments, access control (replacing a badge/key card), and quick phone-to-phone data transfer.'},
+    {id:356, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What is Bluetooth networking often categorized as?', a:'A PAN (Personal Area Network) — short range, but relatively high-speed.'},
+    {id:357, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What\'s the difference between tethering and a hotspot?', a:'Tethering connects one device to your phone for internet; a hotspot lets multiple devices connect to your phone at once.'},
+    {id:358, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'How does a stylus typically connect to a mobile device?', a:'Wirelessly, over Bluetooth.'},
+    {id:359, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'Why does stylus compatibility with your specific device matter?', a:'A mismatched stylus may not support pressure sensitivity or full functionality — you need one matched to your device, e.g. an Apple Pencil for Apple devices.'},
+    {id:360, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What does TRRS stand for, and what is it commonly called?', a:'Tip-Ring-Ring-Sleeve — also known as a 3.5mm analog audio jack.'},
+    {id:361, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What three connector types might a wired headset use?', a:'USB, TRRS (3.5mm analog), or Lightning (on older iPhones).'},
+    {id:362, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What\'s the main difference between a docking station and a port replicator?', a:'A docking station often supports full-size adapter cards and may be laptop-model-specific; a port replicator is more portable, connects via USB, and works across many laptops, but does not support full adapter cards.'},
+    {id:363, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'How do you typically disable a laptop\'s built-in trackpad?', a:'A dedicated function key (the exact key varies by laptop).'},
+    {id:364, week:1, day:1, exam:'1201', ref:'§1.1–1.2 / §1.2', q:'What is a "drawing pad" accessory, and how does it usually connect?', a:'An external digitizer with its own stylus for precise input on a desktop or laptop, connecting via Bluetooth or USB.'},
+    {id:365, week:1, day:2, exam:'1201', ref:'§1.3', q:'What cellular generation first introduced major data capabilities like GPS and video on demand?', a:'3G (starting around 1998).'},
+    {id:366, week:1, day:2, exam:'1201', ref:'§1.3', q:'What does LTE stand for?', a:'Long-Term Evolution — the common name for 4G technology.'},
+    {id:367, week:1, day:2, exam:'1201', ref:'§1.3', q:'What underlying technology is 4G/LTE based on?', a:'GSM (Global System for Mobile Communications).'},
+    {id:368, week:1, day:2, exam:'1201', ref:'§1.3', q:'What does EDGE stand for?', a:'Enhanced Data rates for GSM Evolution.'},
+    {id:369, week:1, day:2, exam:'1201', ref:'§1.3', q:'What year was 5G introduced, and what\'s its theoretical top speed on high frequencies?', a:'2020; up to 10 gigabits per second.'},
+    {id:370, week:1, day:2, exam:'1201', ref:'§1.3', q:'What allows a phone to make calls over Wi-Fi when cellular signal is poor?', a:'Wi-Fi calling — placing calls over the local 802.11 network instead of the cellular network.'},
+    {id:371, week:1, day:2, exam:'1201', ref:'§1.3', q:'In a phone hotspot setup, what connection does the phone itself use, and what do other devices use to connect to it?', a:'The phone connects to the cellular network (e.g. 5G); other devices connect to the phone over 802.11 Wi-Fi.'},
+    {id:372, week:1, day:2, exam:'1201', ref:'§1.3', q:'What is a SIM, and what does it store?', a:'Subscriber Identity Module — a physical card storing carrier/subscriber info, phone number, and some contacts/messages; it can be moved to a different phone.'},
+    {id:373, week:1, day:2, exam:'1201', ref:'§1.3', q:'What\'s the difference between a physical SIM and an eSIM?', a:'A physical SIM can be removed and moved to another phone; an eSIM is built into the device and transferred electronically (via settings or QR code), not physically.'},
+    {id:374, week:1, day:2, exam:'1201', ref:'§1.3', q:'What confirms a Bluetooth pairing between two devices?', a:'A PIN — sometimes fixed, sometimes dynamic — confirmed once during the initial pairing process.'},
+    {id:375, week:1, day:2, exam:'1201', ref:'§1.3', q:'Once two Bluetooth devices are paired, do you need to pair them again each time you reconnect?', a:'No — pairing happens once; after that, the devices reconnect automatically.'},
+    {id:376, week:1, day:2, exam:'1201', ref:'§1.3', q:'Who created GPS, and how many satellites does a device need to see for an accurate reading?', a:'The US Department of Defense; at least 4 satellites.'},
+    {id:377, week:1, day:2, exam:'1201', ref:'§1.3', q:'What three values does GPS calculate from satellite signals?', a:'Longitude, latitude, and altitude above sea level.'},
+    {id:378, week:1, day:2, exam:'1201', ref:'§1.3', q:'Besides GPS, what other two methods can help determine a device\'s location?', a:'Nearby Wi-Fi networks, and cellular tower triangulation.'},
+    {id:379, week:1, day:2, exam:'1201', ref:'§1.3', q:'What is an MDM used for?', a:'Centrally managing an organization\'s mobile devices — both company-owned and BYOD — including app policy, security settings, and data partitioning.'},
+    {id:380, week:1, day:2, exam:'1201', ref:'§1.3', q:'What\'s the difference between BYOD and COPE?', a:'BYOD: the employee owns the device. COPE (Corporate Owned, Personally Enabled): the company owns the device but allows personal use.'},
+    {id:381, week:1, day:2, exam:'1201', ref:'§1.3', q:'What does CYOD mean?', a:'Choose Your Own Device — the company offers a curated list of devices for the employee to pick from.'},
+    {id:382, week:1, day:2, exam:'1201', ref:'§1.3', q:'What is the IMEI used for in an MDM console?', a:'A unique identifier used to track and identify each individual mobile device.'},
+    {id:383, week:1, day:2, exam:'1201', ref:'§1.3', q:'What kinds of settings can an MDM "Restrictions" screen control?', a:'Enabling/disabling things like the camera, FaceTime, voice dialing, Siri, printing, and app installation.'},
+    {id:384, week:1, day:2, exam:'1201', ref:'§1.3', q:'What sync settings can an MDM typically control?', a:'What data syncs (mail, contacts, calendar), whether sync happens over Wi-Fi only or also cellular, and automatic download size limits over cellular.'},
+    {id:8, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does FTP use for active data transfer?', a:'20'},
+    {id:9, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does FTP use for control/administration?', a:'21'},
+    {id:10, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SSH use?', a:'22'},
+    {id:11, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does Telnet use, and why is it avoided today?', a:'23 — it sends everything unencrypted (cleartext).'},
+    {id:12, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SMTP use?', a:'25'},
+    {id:13, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does DNS use?', a:'53 (mostly UDP).'},
+    {id:14, week:1, day:3, exam:'1201', ref:'§2.1', q:'What ports does DHCP use?', a:'67 (server) and 68 (client).'},
+    {id:15, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does HTTP use?', a:'80'},
+    {id:16, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does HTTPS use?', a:'443'},
+    {id:17, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does POP3 use?', a:'110'},
+    {id:18, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does IMAP use?', a:'143'},
+    {id:19, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does SMB use, and what\'s another name for it?', a:'445 — also called CIFS (Common Internet File System).'},
+    {id:20, week:1, day:3, exam:'1201', ref:'§2.1', q:'What two ports does the older NetBIOS protocol use?', a:'UDP 137 (name service) and TCP 139 (session/file transfer).'},
+    {id:21, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does LDAP use, and what is it commonly used for?', a:'389 — commonly used to query Microsoft Active Directory.'},
+    {id:22, week:1, day:3, exam:'1201', ref:'§2.1', q:'What port does RDP use?', a:'3389'},
+    {id:23, week:1, day:3, exam:'1201', ref:'§2.1', q:'What is the well-known (non-ephemeral) port range?', a:'0–1023'},
+    {id:24, week:1, day:3, exam:'1201', ref:'§2.1', q:'What is the ephemeral (client) port range?', a:'1024–65535'},
+    {id:25, week:1, day:3, exam:'1201', ref:'§2.1', q:'TCP vs UDP — what is the core difference?', a:'TCP is connection-oriented and reliable; UDP is connectionless and unreliable, with much less overhead.'},
+    {id:26, week:1, day:3, exam:'1201', ref:'§2.1', q:'Why do real-time apps like VoIP prefer UDP?', a:'Resending a lost packet does not help once the moment has passed; low overhead matters more than guaranteed delivery.'},
+    {id:27, week:1, day:3, exam:'1201', ref:'§2.1', q:'What three pieces of info together identify a specific network conversation?', a:'The IP address, the protocol (TCP or UDP), and the port number.'},
+    {id:28, week:1, day:3, exam:'1201', ref:'§2.1', q:'Are port numbers a security mechanism?', a:'No — they are just a routing reference; easy to discover even if changed.'},
+    {id:29, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is the 802.11ax standard also known as?', a:'Wi-Fi 6 (and Wi-Fi 6E for the extended 6GHz version).'},
+    {id:30, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is the 802.11be standard also known as?', a:'Wi-Fi 7.'},
+    {id:31, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What three frequency bands do modern Wi-Fi networks use?', a:'2.4GHz, 5GHz, and 6GHz.'},
+    {id:32, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'Why does 2.4GHz Wi-Fi have more interference than 5GHz/6GHz?', a:'It only has 3 non-overlapping 20MHz channels available.'},
+    {id:33, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What frequency band does Bluetooth use?', a:'2.4GHz (the unlicensed ISM band).'},
+    {id:34, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is the typical max range for consumer Bluetooth?', a:'About 10 meters.'},
+    {id:35, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is the difference between a passive and an active RFID tag?', a:'Passive has no battery and is powered by the reader\'s signal (short range); active has its own battery and can be read from much farther away.'},
+    {id:36, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'How does NFC relate to RFID?', a:'NFC is a short-range, two-way evolution of RFID, used for things like tap-to-pay.'},
+    {id:37, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a DNS server do?', a:'Translates domain names into IP addresses.'},
+    {id:38, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is the difference between SMB and AFP for file sharing?', a:'SMB is the Windows file-sharing protocol; AFP (Apple Filing Protocol) is the Mac equivalent.'},
+    {id:39, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What two protocols besides SMB are commonly used for network printing?', a:'IPP (Internet Printing Protocol) and LPD (Line Printer Daemon).'},
+    {id:40, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does syslog do?', a:'Consolidates log files from many devices into one central server.'},
+    {id:41, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is a SIEM?', a:'Security Information and Event Manager — the central server that collects and correlates syslog data.'},
+    {id:42, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does an AAA server stand for and do?', a:'Authentication, Authorization, and Accounting — checks credentials and grants/tracks access.'},
+    {id:43, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does SQL stand for?', a:'Structured Query Language — used to store and retrieve data in a database server.'},
+    {id:44, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'Why does an NTP server matter beyond just showing the right clock time?', a:'Accurate time sync is critical for comparing logs across systems and for encryption that depends on correct time.'},
+    {id:45, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a spam gateway do?', a:'Filters incoming email to separate legitimate mail from spam.'},
+    {id:46, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is a UTM (or next-gen firewall)?', a:'An all-in-one security appliance combining firewall, IPS, content filtering, anti-malware, and more.'},
+    {id:47, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a load balancer do?', a:'Distributes incoming requests evenly across multiple servers and removes a failed server from rotation automatically.'},
+    {id:48, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does a proxy server do?', a:'Makes requests on behalf of a client, inspects the response, then forwards it — used for security, caching, and content filtering.'},
+    {id:49, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What does SCADA/ICS stand for?', a:'Supervisory Control And Data Acquisition / Industrial Control System — used to remotely manage industrial equipment.'},
+    {id:50, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'What is an embedded system?', a:'A purpose-built device (like a fire alarm controller) where you do not directly access the underlying OS.'},
+    {id:51, week:1, day:4, exam:'1201', ref:'§2.2–2.3', q:'Why should IoT devices be put on their own segmented network?', a:'Manufacturers often prioritize features over security, so isolating them limits damage if one is compromised.'},
+    {id:52, week:1, day:5, exam:'1201', ref:'§2.4', q:'What organizes the global DNS database at the very top?', a:'13 root server clusters (over 1,000 actual physical servers).'},
+    {id:53, week:1, day:5, exam:'1201', ref:'§2.4', q:'What\'s the difference between a GTLD and a country-code TLD?', a:'GTLD = generic, like .com/.org/.net; country-code = like .us/.ca/.uk (about 275 of them).'},
+    {id:54, week:1, day:5, exam:'1201', ref:'§2.4', q:'What command-line tools can query DNS records directly?', a:'dig (Linux/macOS) and nslookup (Windows and others).'},
+    {id:55, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a DNS resource record (RR)?', a:'An entry in the DNS database containing info like an IP address, mail server name, or text data.'},
+    {id:56, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an A record map?', a:'A hostname to an IPv4 address.'},
+    {id:57, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an AAAA record map?', a:'A hostname to an IPv6 address.'},
+    {id:58, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a CNAME record do?', a:'Points an alias hostname to another (canonical) hostname.'},
+    {id:59, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an MX record specify?', a:'Which mail server is responsible for receiving email for a domain.'},
+    {id:60, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a DNS TXT record generally used for?', a:'Storing human-readable text, often for verification — this is where SPF, DKIM, and DMARC live.'},
+    {id:61, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does an SPF record list?', a:'Which mail servers are authorized to send email on behalf of a domain.'},
+    {id:62, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a DKIM record provide?', a:'A public key (matching a private key on the mail server) used to verify a digital signature on outgoing mail.'},
+    {id:63, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does a DMARC record tell receiving mail servers to do?', a:'How to handle mail that fails SPF/DKIM checks (accept, quarantine, or reject), and where to send a report about it.'},
+    {id:64, week:1, day:5, exam:'1201', ref:'§2.4', q:'What does DORA stand for in the DHCP process?', a:'Discover, Offer, Request, Acknowledge.'},
+    {id:65, week:1, day:5, exam:'1201', ref:'§2.4', q:'In DHCP\'s Discover step, what source IP and port does the client use?', a:'Source 0.0.0.0, sent as a broadcast over UDP port 68.'},
+    {id:66, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a DHCP scope?', a:'The pool of IP addresses and configuration settings (subnet mask, gateway, DNS, etc.) defined for a subnet.'},
+    {id:67, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a DHCP reservation?', a:'A static IP assignment made inside the DHCP server, tied to a device\'s MAC address.'},
+    {id:68, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a VLAN, and why use one?', a:'A way to split a single physical switch into multiple separate broadcast domains, without needing separate physical switches.'},
+    {id:69, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is needed to let two VLANs communicate with each other?', a:'A router (or a Layer 3 switch with routing enabled).'},
+    {id:70, week:1, day:5, exam:'1201', ref:'§2.4', q:'What is a VPN concentrator?', a:'The device that encrypts and decrypts VPN traffic, often built into a firewall.'},
+    {id:71, week:1, day:5, exam:'1201', ref:'§2.4', q:'What\'s the difference between a client-to-site and a site-to-site VPN?', a:'Client-to-site connects one remote user to a central network; site-to-site connects two whole networks together.'},
+    {id:72, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What does a router base its forwarding decisions on?', a:'The destination IP address.'},
+    {id:73, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What does a switch base its forwarding decisions on?', a:'The destination MAC address.'},
+    {id:74, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the key difference between an unmanaged and a managed switch?', a:'Unmanaged = plug-and-play, no config, no VLANs; managed = supports VLANs, QoS, redundancy, port mirroring, SNMP.'},
+    {id:75, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'How does an access point make its forwarding decisions?', a:'Like a switch — based on destination MAC address. It bridges wireless to wired; it does not route.'},
+    {id:76, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the purpose of a patch panel?', a:'Lets you keep permanent punched-down cable runs in place while easily changing connections on the front side with patch cables.'},
+    {id:77, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'Traditional firewall vs next-generation firewall — what do they filter on?', a:'Traditional filters by port number; next-gen filters by the actual application in use.'},
+    {id:78, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What are the power outputs of PoE, PoE+, and PoE++?', a:'PoE: 15.4W; PoE+: 25.5W; PoE++: 51W or 71.3W.'},
+    {id:79, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the difference between PoE endspan and midspan?', a:'Endspan: power comes from the switch itself. Midspan: power comes from a separate injector.'},
+    {id:80, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What standard do cable modems use?', a:'DOCSIS (Data Over Cable Service Interface Specification).'},
+    {id:81, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What limits DSL\'s maximum distance from the provider?', a:'About 10,000 feet from the central office.'},
+    {id:82, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What does an ONT do, and where is it usually located?', a:'Converts fiber to copper at the demarcation point (demarc) — the line between your responsibility and the provider\'s.'},
+    {id:83, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'How many bits is an IPv4 address, and how is it written?', a:'32 bits, written as 4 decimal octets (0–255 each).'},
+    {id:84, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What problem does NAT solve?', a:'Lets many private addresses share a small number of public addresses.'},
+    {id:85, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What standard defines the private IPv4 address ranges?', a:'RFC 1918.'},
+    {id:86, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'How many bits is an IPv6 address?', a:'128 bits.'},
+    {id:87, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'How is an IPv6 address typically written?', a:'In hexadecimal, separated by colons.'},
+    {id:88, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the default subnet mask for IPv6, and what does it mean?', a:'/64 — the first 64 bits are the network, the last 64 bits are the host.'},
+    {id:89, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is a default gateway?', a:'The IP address of the local router, used to reach devices outside your own subnet.'},
+    {id:90, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What is the APIPA range?', a:'169.254.1.0–169.254.254.255, assigned automatically when DHCP is unreachable.'},
+    {id:91, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'Why does a device send an ARP request after picking an APIPA address?', a:'To confirm no other device on the local subnet is already using that same address.'},
+    {id:92, week:1, day:6, exam:'1201', ref:'§2.5–2.6', q:'What\'s the difference between manually configuring a static IP and using a DHCP reservation?', a:'Manual config requires visiting each device individually; a DHCP reservation lets you manage it centrally from the DHCP server by MAC address.'},
+    {id:93, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a typical satellite internet speed and latency?', a:'Around 100Mbps down / 5Mbps up, with roughly half a second of latency (Starlink is much lower, about 25–60ms).'},
+    {id:94, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is "rain fade" in satellite networking?', a:'Signal loss or disruption caused by heavy storms between the dish and the satellite.'},
+    {id:95, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'Why is fiber preferred for long-distance/WAN connections?', a:'It carries far more data over much longer distances with less signal loss than copper.'},
+    {id:96, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What standard do cable internet connections use?', a:'DOCSIS.'},
+    {id:97, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'Why is DSL called "asymmetric" (ADSL)?', a:'Download speed is much faster than upload speed.'},
+    {id:98, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What\'s the difference between tethering and a mobile hotspot?', a:'Tethering shares a phone\'s data connection with one device; a mobile hotspot shares it with multiple devices at once.'},
+    {id:99, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a WISP?', a:'Wireless Internet Service Provider — connects via antenna, useful where wired options are not available.'},
+    {id:100, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a LAN?', a:'A Local Area Network — close-by devices, typically the fastest connectivity.'},
+    {id:101, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a WAN?', a:'A Wide Area Network — connects distant locations, typically slower than a LAN.'},
+    {id:102, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a PAN?', a:'A Personal Area Network — short-range tech like Bluetooth, NFC, or infrared.'},
+    {id:103, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a MAN?', a:'A Metropolitan Area Network — covers a city-sized area, often using Metro Ethernet.'},
+    {id:104, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a SAN, and what kind of access does it provide?', a:'A Storage Area Network — high-speed, block-level access that looks like local storage to connected devices.'},
+    {id:105, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What is a WLAN?', a:'A Wireless LAN — your local 802.11 wireless network.'},
+    {id:106, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What\'s the difference between a Wi-Fi analyzer and a spectrum analyzer?', a:'A Wi-Fi analyzer shows 802.11 channels/signal/interference; a spectrum analyzer shows ALL frequencies in use, not just Wi-Fi.'},
+    {id:107, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'How do you use a tone generator and inductive probe together?', a:'The generator puts a tone on a wire; the probe (without touching copper) detects which physical cable carries that tone.'},
+    {id:108, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What does a cable tester check?', a:'Continuity — that each pin on one end connects to the correct matching pin on the other end.'},
+    {id:109, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What does a loopback plug test?', a:'A port\'s physical interface, by looping its own transmitted signal back into its receive line.'},
+    {id:110, week:1, day:7, exam:'1201', ref:'§2.7–2.8', q:'What\'s the difference between a physical network tap and port mirroring (SPAN)?', a:'A tap is a physical device inserted into the cable run; port mirroring uses the switch\'s own software to copy traffic to a monitoring port — no physical tap needed.'},
+    {id:111, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What does LCD need to function that OLED does not?', a:'A backlight.'},
+    {id:112, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'TN vs IPS vs VA panels — what is the tradeoff?', a:'TN: fastest response, weak off-angle color (good for gaming). IPS: best color, priciest. VA: middle ground on both.'},
+    {id:113, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What makes OLED displays different from LCD?', a:'No backlight needed — an organic compound emits its own light, giving thinner displays and deeper blacks.'},
+    {id:114, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is Mini-LED, and what problem does it solve?', a:'A backlight using much smaller, individually-controlled LEDs, letting an LCD get closer to OLED-level black levels.'},
+    {id:115, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What does a digitizer do?', a:'Converts touch (finger or stylus) into coordinate data the device can use as input.'},
+    {id:116, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'Why do some older LCD backlights need an inverter?', a:'Older fluorescent backlights need AC power, but laptops only provide DC, so an inverter converts DC to AC.'},
+    {id:117, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is pixel density (PPI)?', a:'How many pixels fit into one inch of a display — higher PPI means a sharper image.'},
+    {id:118, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What does a display\'s refresh rate (Hz) describe?', a:'How many times per second the image on screen updates.'},
+    {id:119, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is V-sync?', a:'A setting where a display\'s refresh rate (Hz) is matched to the actual frame rate (FPS) being rendered.'},
+    {id:120, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What does HDMI 2.1 support at maximum?', a:'4K resolution at up to 144Hz.'},
+    {id:121, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is "color gamut"?', a:'The range of colors a display is capable of showing.'},
+    {id:122, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is sRGB?', a:'A standard color space (Standard Red Green Blue) used to measure how much of the visible color range a display can reproduce.'},
+    {id:123, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'Why are the wire pairs inside twisted pair cable actually twisted?', a:'To cancel out interference/crosstalk between the wires.'},
+    {id:124, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What\'s the minimum cable category for Gigabit Ethernet (1000BASE-T)?', a:'Category 5e.'},
+    {id:125, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What\'s the minimum cable category for 10-Gigabit Ethernet (10GBASE-T)?', a:'Category 6 (limited to 55m) or Category 6a (full 100m).'},
+    {id:126, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What does UTP stand for?', a:'Unshielded Twisted Pair — no shielding around the cable or its individual pairs.'},
+    {id:127, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What do the U/S/F shielding abbreviations mean on a cable jacket?', a:'U = unshielded; S = braided shielding; F = foil shielding (e.g., S/FTP = braided shield outside, foil around each pair).'},
+    {id:128, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What is "plenum space"?', a:'The open air-handling area above a drop ceiling.'},
+    {id:129, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'Why do cables run through plenum space need to be plenum-rated?', a:'Standard PVC cable jackets can spread fire and smoke; plenum-rated jackets (FEP or low-smoke PVC) are fire-rated for that environment.'},
+    {id:130, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What standard governs Ethernet cable wiring in the US?', a:'ANSI/TIA-568.'},
+    {id:131, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What\'s actually different between T568A and T568B?', a:'Only pins 1&2 and 3&6 (orange and green pairs swap); pins 4,5 (blue) and 7,8 (brown) are identical in both.'},
+    {id:132, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'Which wiring standard is most common in the US?', a:'T568B.'},
+    {id:133, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What happens if you wire one end of a cable T568A and the other T568B?', a:'It is not a real Ethernet crossover cable despite the myth — never mix the two standards on the same cable.'},
+    {id:134, week:2, day:8, exam:'1201', ref:'§3.1–3.2', q:'What\'s the core difference between multimode and single-mode fiber?', a:'Multimode has a larger core, uses cheaper LED light, and covers shorter distances (about 2km); single-mode has a narrow core, uses laser light, and covers much longer distances.'},
+    {id:135, week:2, day:9, exam:'1201', ref:'§3.2', q:'What are the max speeds of USB 1.1, 2.0, and 3.0?', a:'1.1: 12Mbps (full speed); 2.0: 480Mbps; 3.0: 5Gbps ("SuperSpeed").'},
+    {id:136, week:2, day:9, exam:'1201', ref:'§3.2', q:'What are USB 3.1 and 3.2\'s max speeds?', a:'3.1: 10Gbps; 3.2: 20Gbps.'},
+    {id:137, week:2, day:9, exam:'1201', ref:'§3.2', q:'What makes USB-C different from earlier USB connectors?', a:'It is reversible (no wrong-way-up) and consolidated nearly all prior connector types into one physical standard.'},
+    {id:138, week:2, day:9, exam:'1201', ref:'§3.2', q:'What standard do DB-9 serial connectors use, and since when?', a:'RS-232, in use since 1969.'},
+    {id:139, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is a DB-9 serial connection commonly used for today?', a:'Console/configuration access to older switches, routers, and firewalls.'},
+    {id:140, week:2, day:9, exam:'1201', ref:'§3.2', q:'What connector did early Thunderbolt versions use?', a:'Mini DisplayPort (Thunderbolt 1 and 2); modern Thunderbolt 3/4 use USB-C.'},
+    {id:141, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is Thunderbolt 3/4\'s max throughput?', a:'40 gigabits per second (aggregated).'},
+    {id:142, week:2, day:9, exam:'1201', ref:'§3.2', q:'Can Thunderbolt devices be daisy-chained?', a:'Yes — for example, computer to monitor to a second monitor to a storage device, all from one port.'},
+    {id:143, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is HDMI\'s typical maximum cable range before signal issues?', a:'About 20 meters.'},
+    {id:144, week:2, day:9, exam:'1201', ref:'§3.2', q:'What makes DisplayPort different in how it sends its signal?', a:'It sends a packetized signal, similar in concept to Ethernet.'},
+    {id:145, week:2, day:9, exam:'1201', ref:'§3.2', q:'DVI single-link vs dual-link — what\'s the difference?', a:'Dual-link doubles the throughput of single-link, supporting higher resolutions.'},
+    {id:146, week:2, day:9, exam:'1201', ref:'§3.2', q:'What\'s the difference between DVI-A, DVI-D, and DVI-I?', a:'DVI-A = analog only; DVI-D = digital only; DVI-I = integrated, supports both.'},
+    {id:147, week:2, day:9, exam:'1201', ref:'§3.2', q:'What connector does VGA use?', a:'A DB-15 (technically DE-15) connector, commonly colored blue.'},
+    {id:148, week:2, day:9, exam:'1201', ref:'§3.2', q:'Does VGA carry audio?', a:'No — like DVI, VGA is video-only.'},
+    {id:149, week:2, day:9, exam:'1201', ref:'§3.2', q:'What are SATA revision 1.0, 2.0, and 3.0\'s max speeds?', a:'1.0: 1.5Gbps; 2.0: 3Gbps; 3.0: 6Gbps.'},
+    {id:150, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is eSATA, and what\'s the typical max cable length?', a:'The external version of SATA, with about a 2-meter max cable length.'},
+    {id:151, week:2, day:9, exam:'1201', ref:'§3.2', q:'Can SATA daisy-chain multiple drives on one cable?', a:'No — SATA is a one-to-one connection between drive and motherboard.'},
+    {id:152, week:2, day:9, exam:'1201', ref:'§3.2', q:'What\'s the difference between RJ11 and RJ45?', a:'RJ11 is a smaller 6-position connector (phone/DSL); RJ45 is a larger 8-position connector (Ethernet).'},
+    {id:153, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is an F-connector commonly used for?', a:'Coax connections like cable TV and cable modems — a threaded, screw-on connector.'},
+    {id:154, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is a Molex connector used for?', a:'Providing 12V and 5V power to older drives, fans, and other internal peripherals.'},
+    {id:155, week:2, day:9, exam:'1201', ref:'§3.2', q:'What is a Lightning connector, and where is it used?', a:'Apple\'s proprietary connector, used on (older) iPhones, iPads, and similar devices.'},
+    {id:156, week:2, day:9, exam:'1201', ref:'§3.2', q:'Why can DVI-D and HDMI be connected with a simple adapter, no conversion needed?', a:'Both are digital video signals and are electrically compatible with each other.'},
+    {id:157, week:2, day:9, exam:'1201', ref:'§3.2', q:'Why does going from VGA to DVI-D require real signal conversion, not just an adapter?', a:'VGA is analog and DVI-D is digital — converting between them requires actual signal processing, not just a different plug shape.'},
+    {id:158, week:2, day:9, exam:'1201', ref:'§3.2', q:'What\'s the difference between ST, SC, and LC fiber connectors?', a:'ST = bayonet twist-lock (largest); SC = push-to-lock, pull-to-release (medium); LC = smallest, with a top clip latch.'},
+    {id:159, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'Is RAM the same as long-term storage?', a:'No — RAM is volatile, temporary working memory; it is not your hard drive or SSD.'},
+    {id:160, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What\'s the difference between a DIMM and a SO-DIMM?', a:'DIMM is full-size (desktops); SO-DIMM is about half the size, used in laptops.'},
+    {id:161, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does SDRAM mean?', a:'Synchronous Dynamic RAM — synchronized to the system\'s common clock.'},
+    {id:162, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does DDR stand for, and what does it do?', a:'Double Data Rate — transfers data on both the rising and falling edge of the clock cycle, doubling throughput vs older single data rate memory.'},
+    {id:163, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'Are DDR3, DDR4, and DDR5 backward compatible with each other?', a:'No — each generation is physically keyed differently and cannot be installed in a motherboard meant for a different generation.'},
+    {id:164, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What\'s the difference between parity memory and ECC memory?', a:'Parity memory can only detect that an error occurred; ECC memory can detect AND correct the error.'},
+    {id:165, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What unit is memory bandwidth typically measured in?', a:'MT/s (million transfers per second).'},
+    {id:166, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What\'s the benefit of multichannel (dual/triple/quad) memory?', a:'It lets the CPU access multiple memory modules in parallel, increasing total throughput.'},
+    {id:167, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does a hard drive\'s RPM rating affect?', a:'How fast data can be read/written — higher RPM means lower latency waiting for the right data to spin under the head.'},
+    {id:168, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What\'s the main advantage of an SSD over an HDD?', a:'No moving parts, and dramatically faster read/write speeds.'},
+    {id:169, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What is NVMe?', a:'Non-Volatile Memory Express — a low-latency storage protocol connecting directly to the PCIe bus instead of being limited by the older SATA interface.'},
+    {id:170, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What is the M.2 interface used for?', a:'A small, cable-free slot for SSDs that can use either SATA or NVMe (PCIe) signaling, identified by B-key, M-key, or both.'},
+    {id:171, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What is SAS, and where is it commonly used?', a:'Serial Attached SCSI — a faster alternative to SATA (about 22.5Gbps), commonly used in server storage arrays.'},
+    {id:172, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What is mSATA?', a:'Mini SATA — a smaller form factor that served as a stopgap before M.2 became standard.'},
+    {id:173, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What type of memory do USB flash drives use, and what\'s its limitation?', a:'EEPROM — it has a limited number of write cycles before it can no longer be written to (though usually still readable).'},
+    {id:174, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 0 (striping) provide, and what\'s the tradeoff?', a:'Speed, by splitting data across drives — but zero redundancy; losing one drive loses everything.'},
+    {id:175, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 1 (mirroring) require, and what does it provide?', a:'At least 2 drives; an exact duplicate on each, so losing one drive does not lose any data.'},
+    {id:176, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 5 require, and what can it survive?', a:'At least 3 drives (striping plus 1 drive\'s worth of parity); survives losing 1 drive.'},
+    {id:177, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 6 require, and what can it survive?', a:'At least 4 drives (striping plus 2 drives\' worth of parity); survives losing 2 drives.'},
+    {id:178, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'What does RAID 10 (1+0) require, and what does it provide?', a:'At least 4 drives; striped mirrors — combines speed and redundancy.'},
+    {id:179, week:2, day:10, exam:'1201', ref:'§3.3–3.4', q:'Is RAID a replacement for backups?', a:'No — RAID provides redundancy and uptime if a drive fails, but you still need a separate, real backup process.'},
+    {id:180, week:2, day:11, exam:'1201', ref:'§3.5', q:'What are the only 3 motherboard form factors the A+ exam expects you to know?', a:'ATX, Micro-ATX, and Mini-ITX.'},
+    {id:181, week:2, day:11, exam:'1201', ref:'§3.5', q:'How does Micro-ATX compare to full ATX?', a:'Same mounting points and power connector, just physically smaller with fewer expansion and memory slots.'},
+    {id:182, week:2, day:11, exam:'1201', ref:'§3.5', q:'Why can a Mini-ITX motherboard fit in a case designed for ATX?', a:'It uses the same mounting screw positions as a full ATX board, just smaller overall.'},
+    {id:183, week:2, day:11, exam:'1201', ref:'§3.5', q:'What\'s the difference between PCI and PCIe?', a:'PCI is an older parallel bus (32-bit or 64-bit); PCIe is a newer, faster serial bus.'},
+    {id:184, week:2, day:11, exam:'1201', ref:'§3.5', q:'What does "PCIe x4" mean?', a:'A PCIe slot/card using 4 lanes of communication — more lanes means more throughput.'},
+    {id:185, week:2, day:11, exam:'1201', ref:'§3.5', q:'How many pins does a modern motherboard main power connector have?', a:'24 pins (older boards used 20).'},
+    {id:186, week:2, day:11, exam:'1201', ref:'§3.5', q:'What do the 6-pin and 8-pin PCIe power connectors provide?', a:'6-pin: 75 watts; 8-pin: 150 watts (commonly used for graphics cards).'},
+    {id:187, week:2, day:11, exam:'1201', ref:'§3.5', q:'What are motherboard "headers" used for?', a:'Connecting front-panel buttons, lights, USB ports, audio, and similar built-in case connections.'},
+    {id:188, week:2, day:11, exam:'1201', ref:'§3.5', q:'What\'s a key advantage of the M.2 storage interface?', a:'No separate data or power cables needed — the drive plugs directly into the slot.'},
+    {id:189, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is POST?', a:'Power-On Self-Test — checks that core hardware (CPU, memory, keyboard/mouse) is present and working at startup.'},
+    {id:190, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What\'s the difference between legacy BIOS and UEFI?', a:'Legacy is text-based and decades old with limited modern hardware support; UEFI is graphical, mouse-capable, and standardized across manufacturers.'},
+    {id:191, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Who created the UEFI standard?', a:'Intel.'},
+    {id:192, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Why might Windows not prompt you to enter BIOS setup on startup?', a:'Fast Startup means the system does not fully power off, so it skips the BIOS prompt — hold Shift while restarting, or interrupt boot 3 times, to force full BIOS access.'},
+    {id:193, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What does the BIOS boot order/sequence control?', a:'Which storage device the system tries to boot from first, second, third, and so on.'},
+    {id:194, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Why might an organization disable USB ports in the BIOS?', a:'To prevent malware introduced via USB drives — this is exactly why the US DoD banned USB drives for 15 months after a 2008 worm infection.'},
+    {id:195, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is Secure Boot, and what does it require?', a:'A UEFI feature that uses digital signatures to verify the OS and bootloader have not been tampered with before allowing the system to boot.'},
+    {id:196, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What\'s the difference between a BIOS supervisor/admin password and a BIOS user/boot password?', a:'Supervisor password restricts changing BIOS settings; user password restricts booting the system at all.'},
+    {id:197, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is CMOS?', a:'Complementary Metal-Oxide Semiconductor — the older type of memory historically used to store BIOS settings, mostly replaced by flash memory today.'},
+    {id:198, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'How do you reset BIOS settings on a modern motherboard?', a:'Using a jumper on the board (often labeled CLRTC) — removing the battery usually does NOT reset settings on modern boards.'},
+    {id:199, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What BIOS setting enables hardware-assisted virtualization, and what is it called on Intel vs AMD?', a:'Intel: VT (Virtualization Technology); AMD: AMD-V.'},
+    {id:200, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is a TPM used for?', a:'Securely storing encryption keys and performing cryptographic functions tied to one specific physical computer.'},
+    {id:201, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Why can\'t you just move an encrypted drive to another computer and read it if it was protected by a TPM?', a:'The decryption key lives in the TPM of the original computer, not on the drive itself.'},
+    {id:202, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What\'s the difference between a TPM and an HSM?', a:'A TPM secures a single device; an HSM is used at a larger scale to centralize and accelerate cryptographic operations across many systems.'},
+    {id:203, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What\'s the practical RAM ceiling for a 32-bit OS, and why?', a:'About 4GB, because a 32-bit address space can only reference 2 to the 32nd power locations.'},
+    {id:204, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Can a 64-bit OS run 32-bit applications? Can a 32-bit OS run 64-bit applications?', a:'A 64-bit OS can run 32-bit apps; a 32-bit OS cannot run 64-bit apps.'},
+    {id:205, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What does ARM stand for, and where is it most commonly used?', a:'Advanced RISC Machine — used in roughly 99% of mobile phones due to its power efficiency.'},
+    {id:206, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is a CPU "core"?', a:'An individual processor within a single CPU package, each with its own cache, letting multiple instructions run simultaneously.'},
+    {id:207, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What\'s the benefit of a discrete GPU over integrated graphics?', a:'Dedicated processing power and memory for high-end graphics, video editing, or gaming.'},
+    {id:208, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is a capture card used for?', a:'Bringing video INPUT into a computer, for example from a camera or another computer.'},
+    {id:209, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Where should you check before installing a new expansion card\'s driver?', a:'The manufacturer\'s documentation — some hardware needs the driver installed first, others need the hardware installed first.'},
+    {id:210, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What are common case fan sizes?', a:'80mm, 120mm, and 200mm.'},
+    {id:211, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What is passive cooling, and where is it commonly used?', a:'Fanless cooling relying on heat sinks alone — common in quiet devices like set-top boxes.'},
+    {id:212, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'What does thermal paste or a thermal pad actually do?', a:'Creates a better thermal connection between a hot component and its heat sink, helping transfer heat away more effectively.'},
+    {id:213, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'Is thermal paste or a thermal pad reusable?', a:'No — if you remove the heat sink, you need to reapply fresh paste or a new pad.'},
+    {id:214, week:2, day:12, exam:'1201', ref:'§3.5 cont.', q:'When is liquid cooling typically used?', a:'High-end gaming systems, or systems where the CPU is being overclocked.'},
+    {id:215, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What conversion does a PSU perform?', a:'Converts AC (from the wall) into DC (for the motherboard and components).'},
+    {id:216, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What DC voltages does a PSU commonly output?', a:'3.3V, 5V, and 12V.'},
+    {id:217, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'How do you calculate watts from volts and amps?', a:'Watts = Volts multiplied by Amps.'},
+    {id:218, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What is standard AC power in the US/Canada vs Europe?', a:'US/Canada: 120V at 60Hz; Europe: 230V at 50Hz.'},
+    {id:219, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'Why is it risky to leave an old manual-switch PSU set to the wrong voltage?', a:'Plugging a 120V-set PSU into a 230V outlet (or vice versa) can cause a catastrophic failure.'},
+    {id:220, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What is the +5VSB rail used for?', a:'Standby power, so the system can wake from sleep via a network signal or the power button.'},
+    {id:221, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'How many pins does the modern motherboard main power connector have?', a:'24 pins (older boards used 20).'},
+    {id:222, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'Why are redundant PSUs used in servers?', a:'Each PSU can handle 100% of the load alone, so if one fails or is hot-swapped, the other keeps the system running with no downtime.'},
+    {id:223, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What\'s the difference between a modular and non-modular PSU?', a:'Modular lets you connect only the cables you need; non-modular comes with all cables permanently attached.'},
+    {id:224, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What\'s a good rule of thumb for sizing a new PSU?', a:'Choose one that gives you roughly 50% headroom over your current total power needs.'},
+    {id:225, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What do the 80 Plus efficiency ratings indicate, from least to most efficient?', a:'(none) < Bronze < Silver < Gold < Platinum < Titanium.'},
+    {id:226, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'Why must a printer driver match your OS\'s bit-ness?', a:'A 32-bit OS needs a 32-bit driver and a 64-bit OS needs a 64-bit driver, or the printer will not work correctly.'},
+    {id:227, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What\'s the difference between PCL and PostScript?', a:'PCL (Printer Command Language) was created by HP; PostScript was created by Adobe — both are page description languages a printer can interpret.'},
+    {id:228, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What is printer firmware?', a:'The printer\'s own internal operating system, which can be updated to fix bugs or add features.'},
+    {id:229, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What connection types might a multifunction device support?', a:'USB (A/B/C), wired Ethernet (RJ45), Bluetooth, and 802.11 wireless (infrastructure or ad hoc mode).'},
+    {id:230, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What\'s the downside of sharing a printer through a directly-connected PC instead of a print server?', a:'If that PC is turned off, no one can print — a dedicated print server avoids this single point of failure.'},
+    {id:231, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What is printer "badging" or secure/PIN printing for?', a:'The print job waits at the printer until the user authenticates with a badge or PIN, so sensitive output is not left exposed.'},
+    {id:232, week:2, day:13, exam:'1201', ref:'§3.6–3.8', q:'What scan destinations do modern MFDs commonly support?', a:'Email, a network share (scan to SMB/folder), or a cloud service like Google Drive or Dropbox.'},
+    {id:233, week:2, day:14, exam:'1201', ref:'§3.8 cont.', q:'What commonly causes faded/blank output on a thermal printer?', a:'A worn heating element or using non-thermal paper.'},
+    {id:234, week:2, day:14, exam:'1201', ref:'§3.8 cont.', q:'What are the main wear parts on a dot-matrix (impact) printer?', a:'The print head, ribbon, and tractor feed mechanism.'},
+    {id:235, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is "sandboxing" in the context of virtualization?', a:'Running code in an isolated VM so that if something breaks, only that VM is affected.'},
+    {id:236, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What\'s the benefit of a VM snapshot?', a:'You can revert instantly to a saved state if a change causes a problem.'},
+    {id:237, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'Type 1 vs Type 2 hypervisor — give an example of each.', a:'Type 1 (bare-metal): VMware ESXi, Hyper-V. Type 2 (hosted): VMware Workstation, VirtualBox, Parallels.'},
+    {id:238, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is a "VM escape"?', a:'A security flaw where malware breaks out of one VM and reaches other VMs through the hypervisor itself.'},
+    {id:239, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is VDI (or DaaS)?', a:'Virtual Desktop Infrastructure — your whole desktop runs remotely, and your local device just needs a keyboard, mouse, and display.'},
+    {id:240, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'How is application containerization (e.g. Docker) different from a full VM?', a:'Containers virtualize only the application and share one host OS, much lighter than a VM — but a container cannot run on a different OS than the host.'},
+    {id:241, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does IaaS provide, and who manages what?', a:'Rented infrastructure (CPU, storage); you still manage the OS, applications, and data.'},
+    {id:242, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does PaaS provide, and who manages what?', a:'A platform to build and run your own applications; you write the apps, the provider manages the underlying platform.'},
+    {id:243, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What does SaaS provide, and who manages what?', a:'Fully managed, ready-to-use software; the provider manages everything, you just log in and use it.'},
+    {id:244, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is a cloud "responsibility matrix"?', a:'Provider documentation clarifying exactly which parts of a service the provider manages vs what the customer is responsible for.'},
+    {id:245, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What\'s the difference between a private and a public cloud?', a:'Private = your own dedicated infrastructure (high upfront cost, no usage fees); Public = shared, multi-tenant infrastructure (low upfront cost, pay-as-you-go).'},
+    {id:246, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What\'s the difference between metered and non-metered cloud billing?', a:'Metered = pay based on actual usage; non-metered = fixed price regardless of usage.'},
+    {id:247, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is cloud "elasticity"?', a:'The ability to instantly scale resources up or down based on demand.'},
+    {id:248, week:3, day:15, exam:'1201', ref:'§4.1–4.2', q:'What is cloud "multi-tenancy"?', a:'Many different customers sharing the same physical infrastructure, kept logically isolated from each other.'},
+    {id:249, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'Should you memorize specific BIOS beep codes?', a:'No — beep codes vary by manufacturer; always check that manufacturer\'s documentation when you hear them.'},
+    {id:250, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does it usually mean if the system beeps but shows nothing on screen?', a:'Likely bad video, memory, or CPU — anything that prevents POST from displaying output.'},
+    {id:251, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does it usually mean if the BIOS asks for the date and time on every boot?', a:'A dead or dying CMOS battery.'},
+    {id:252, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'Where can you look up a specific Windows BSoD stop code?', a:'windows.com/stopcode'},
+    {id:253, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What are common BSoD recovery steps?', a:'Last known good configuration, System Restore, roll back the most recent driver, boot into Safe Mode, reseat cards/memory, or run a full hardware diagnostic.'},
+    {id:254, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What\'s the first thing to check on a black screen with no video at all?', a:'That the monitor is actually connected (cable and power) and the correct input is selected.'},
+    {id:255, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'If fans spin but there is no video at all, what\'s likely wrong?', a:'A POST error — probably a bad motherboard or bad video card.'},
+    {id:256, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'If ONLY the fans are working and nothing else powers on, what should you check?', a:'The power supply\'s voltage outputs with a multimeter.'},
+    {id:257, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What are some checks for a sluggish/slow computer?', a:'Task Manager (CPU/memory/disk/network), run Windows Update, check free disk space, check power-saving/throttling settings, run a malware scan.'},
+    {id:258, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What do rattling, scraping, clicking, and popping noises from inside a computer each typically suggest?', a:'Rattling = a loose part (like a heatsink); scraping = a failing hard drive; clicking = something obstructing a fan; popping with smoke/smell = a failed capacitor.'},
+    {id:259, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does a bulging capacitor (vs a flat one) indicate?', a:'That the capacitor has failed or is about to fail.'},
+    {id:260, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What\'s a common cause of a computer randomly shutting off with no warning?', a:'An automatic thermal protection shutdown — check for blocked airflow, dust, or a disconnected heat sink.'},
+    {id:261, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What is the "click of death," and what does it usually mean?', a:'A clicking noise from a failing hard drive, usually signaling unrecoverable physical damage.'},
+    {id:262, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'If an SSD fails, what can you often still do?', a:'Read data from it, even if you can no longer write to it.'},
+    {id:263, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What\'s the difference between "drive not recognized" and "operating system not found"?', a:'"Drive not recognized" means the drive itself is not detected at all; "OS not found" means the drive IS detected, but no valid bootable file system was found.'},
+    {id:264, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'What does S.M.A.R.T. do?', a:'Tracks ongoing drive health statistics (like power-on hours and temperature) to help predict failure before it happens.'},
+    {id:265, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'Roughly how do HDD and SSD IOPS compare?', a:'HDD about 200 IOPS vs SSD about 1,000,000 IOPS — replacing an HDD with an SSD is one of the most effective single upgrades you can make.'},
+    {id:266, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'When replacing a failed drive in a RAID array, what should you double-check first?', a:'That you are actually pulling the failed drive, not a healthy one, especially in arrays with many identical-looking drives.'},
+    {id:267, week:3, day:16, exam:'1201', ref:'§5.1–5.2', q:'If a network-mapped drive goes missing on reboot, what should you check?', a:'The "reconnect at sign-in" setting for that mapped network drive.'},
+    {id:268, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What\'s the first thing to check on a "no signal" monitor?', a:'That the cable and power are properly connected, and the correct input source is selected on the monitor.'},
+    {id:269, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What is the Windows boot option for a generic, compatible video mode?', a:'VGA mode, accessed via F8 during boot.'},
+    {id:270, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'Why do projector fans keep running after you power the projector off?', a:'To finish cooling the very hot bulb (around 1,000 degrees Celsius) and prevent damage.'},
+    {id:271, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What is a display\'s "native resolution," and why does it matter?', a:'Its fixed physical pixel count; matching your output to it gives the sharpest possible image.'},
+    {id:272, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What\'s the difference between screen burn-in and a dead pixel?', a:'Burn-in is a temporary/semi-permanent ghost image from static content; a dead pixel is a permanent hardware defect that never lights up.'},
+    {id:273, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What is "pixel shift," and what\'s it for?', a:'A feature that subtly shifts the displayed image over time to help prevent burn-in.'},
+    {id:274, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'If colors look wrong or tinted on a monitor, what should you check?', a:'The monitor\'s color presets (or factory reset) and the OS\'s night mode/night light setting.'},
+    {id:275, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'If a monitor has audio but no sound is coming through, what should you check?', a:'That the monitor\'s volume isn\'t muted/low, and that the audio input matches the video input.'},
+    {id:276, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What does display "scaling" fix?', a:'Tiny icons/text on a high-resolution display, or an image that doesn\'t fill a larger screen properly.'},
+    {id:277, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'Why might a phone\'s battery drain quickly even if it isn\'t old?', a:'Poor signal causes constant searching for a connection, which drains battery fast — airplane mode helps in dead zones.'},
+    {id:278, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What should you do if you see a swollen/bulging battery?', a:'Stop using the device immediately; never puncture it — it is a fire risk.'},
+    {id:279, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What is an LCI, and what\'s it used for?', a:'Liquid Contact Indicator — changes color on contact with liquid, checked first when diagnosing possible water damage.'},
+    {id:280, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What\'s the correct response to liquid spilled on a phone?', a:'Power it off immediately, do not charge it, remove the case/battery/cards if possible, and let it dry with a desiccant for 24 hours before powering back on.'},
+    {id:281, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'Does putting a wet phone in rice actually help dry it out?', a:'Not really — rice does not absorb moisture well; a proper desiccant packet works much better.'},
+    {id:282, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'Why might a phone shut itself off in direct sunlight or a hot car?', a:'Automatic thermal protection to prevent damage to the electronics.'},
+    {id:283, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'If a touchscreen registers phantom touches with no one touching it, what\'s the likely cause?', a:'"Cursor drift" from a bad digitizer or display — not malware.'},
+    {id:284, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What should you check if an app won\'t install on a mobile device?', a:'Available storage space, network connectivity, OS/device compatibility, and that you\'re logged into the app store.'},
+    {id:285, week:3, day:17, exam:'1201', ref:'§5.3–5.4', q:'What should you check if a wireless stylus isn\'t working?', a:'Its battery charge, its Bluetooth pairing, and whether the tip is damaged (tips are often replaceable).'},
+    {id:286, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What\'s the correct baseline order for troubleshooting a connectivity problem?', a:'Check the link light, then ping loopback (127.0.0.1), then ping local IP, then ping default gateway, then ping an external/internet address.'},
+    {id:287, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What does pinging 127.0.0.1 (loopback) actually test?', a:'Your own device\'s local IP stack, not the network at all.'},
+    {id:288, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What are 3 commonly used public DNS/test IP addresses?', a:'8.8.8.8 (Google), 1.1.1.1 (Cloudflare), and 9.9.9.9 (Quad9).'},
+    {id:289, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What is "multipath interference"?', a:'Wireless signal bouncing off surfaces and arriving at slightly different times, degrading reception.'},
+    {id:290, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'Before blaming "the network" for slowness, what should you verify first?', a:'That the slowdown isn\'t actually the CPU, application, or database server — a ping/speed test helps confirm where the real bottleneck is.'},
+    {id:291, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What is "jitter," and why does it matter for real-time traffic?', a:'Variation in the timing between received data frames — high jitter causes choppy voice/video calls.'},
+    {id:292, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What is "port flapping"?', a:'A link going up and down repeatedly, usually caused by a bad cable or a failing switch port.'},
+    {id:293, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What is "latency"?', a:'The delay between sending a request and receiving a response.'},
+    {id:294, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What does SNR stand for, and what ratio do you want?', a:'Signal-to-Noise Ratio — you want it as high as possible (much more signal than noise).'},
+    {id:295, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What three things commonly cause wireless interference?', a:'Fluorescent lights, microwave ovens, and cordless phones.'},
+    {id:296, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'If you see "limited connectivity" or "no internet access," what address range should you check for?', a:'169.254.x.x (APIPA) — it usually means DHCP failed.'},
+    {id:297, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'How can you tell from a packet capture that you have an authentication issue rather than a network issue?', a:'You\'ll see a request followed immediately by a "permission denied" response.'},
+    {id:298, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What\'s a good technique for catching an intermittent network problem in the act?', a:'Run a continuous/scheduled ping, traceroute, or speed test so you have data from when the problem actually occurs.'},
+    {id:299, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What\'s the difference between an OS-level print test page and a printer-level test page?', a:'OS-level tests the driver and OS configuration; printer-level tests only the printer\'s own hardware, bypassing the OS and driver entirely.'},
+    {id:300, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'A single dark line running down a page — what\'s the likely cause on an inkjet vs a laser printer?', a:'Inkjet: dirty print head. Laser: a scratch on the photosensitive drum.'},
+    {id:301, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What causes faded or light printed output?', a:'Low toner or low ink.'},
+    {id:302, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What causes "ghosting" (a faint repeated image) on laser printer output?', a:'The drum isn\'t cleaning properly between rotations.'},
+    {id:303, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What typically causes garbled printed output?', a:'A wrong/mismatched printer driver, or sending the wrong page description language (PCL vs PostScript) to the printer.'},
+    {id:304, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What usually causes paper to not feed, or multiple sheets to feed at once?', a:'Dirty or worn pickup rollers.'},
+    {id:305, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'If print jobs are stuck in the queue and nothing is printing, what\'s likely the issue?', a:'The print spooler service has crashed or frozen — Windows often auto-restarts it the first couple of failures, but may need manual intervention after that.'},
+    {id:306, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'What does a grinding noise from a printer often indicate?', a:'A paper jam, or an ink cartridge that isn\'t seated properly.'},
+    {id:307, week:3, day:18, exam:'1201', ref:'§5.5–5.6', q:'If a network printer isn\'t responding, what should you check, just like any other network device?', a:'Wired/wireless connection type, IP/subnet/gateway/DNS settings, the printer\'s own print server status, and the link light.'},
+    {id:308, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system does modern Windows use by default?', a:'NTFS.'},
+    {id:309, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What is exFAT typically used for?', a:'Flash or external drives that need to work across Windows, macOS, and other systems without FAT32\'s file-size limits.'},
+    {id:310, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system is commonly used on Linux?', a:'ext4.'},
+    {id:311, week:4, day:22, exam:'1202', ref:'§1.1–1.2', q:'What file system does macOS use?', a:'APFS.'},
+    {id:312, week:4, day:23, exam:'1202', ref:'§1.3–1.4', q:'What does Windows Pro add over Windows Home?', a:'Business features like BitLocker, Remote Desktop hosting, and the ability to join a domain.'},
+    {id:313, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does ipconfig /all show?', a:'Full network configuration — IP, subnet, gateway, DNS, MAC address, and DHCP lease info.'},
+    {id:314, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does ping do?', a:'Tests basic connectivity to another host using ICMP echo requests.'},
+    {id:315, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does netstat show?', a:'Active network connections and listening ports.'},
+    {id:316, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does nslookup do?', a:'Queries DNS to resolve a hostname to an IP address.'},
+    {id:317, week:4, day:24, exam:'1202', ref:'§1.5', q:'What does tracert (or traceroute) do?', a:'Shows the hop-by-hop path packets take to a destination.'},
+    {id:318, week:4, day:25, exam:'1202', ref:'§1.6–1.7', q:'What is the difference between a Workgroup and a Domain?', a:'A Workgroup is a small peer-to-peer group with local accounts; a Domain is centrally managed (Active Directory) with centralized accounts and policy.'},
+    {id:319, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does ls do in Linux?', a:'Lists files and directories in the current location.'},
+    {id:320, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does pwd do in Linux?', a:'Prints the current working directory path.'},
+    {id:321, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does cp do in Linux?', a:'Copies a file or directory.'},
+    {id:322, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does mv do in Linux?', a:'Moves or renames a file or directory.'},
+    {id:323, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does rm do in Linux?', a:'Deletes a file or directory.'},
+    {id:324, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does chmod do in Linux?', a:'Changes a file or directory\'s permissions.'},
+    {id:325, week:4, day:26, exam:'1202', ref:'§1.8–1.10', q:'What does grep do in Linux?', a:'Searches text for a matching pattern.'},
+    {id:326, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is the principle of least privilege?', a:'Giving users only the access they need to do their job, nothing more.'},
+    {id:327, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is Zero Trust?', a:'A security model that verifies every request and never automatically trusts a user or device, even inside the network.'},
+    {id:328, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'What is MFA?', a:'Multi-Factor Authentication — requiring two or more proof types to log in.'},
+    {id:329, week:4, day:28, exam:'1202', ref:'§2.1–2.2', q:'NTFS permissions vs Share permissions — what is the difference, and which wins when combined?', a:'NTFS applies locally regardless of access method; Share only applies over the network. The more restrictive of the two wins.'},
+    {id:330, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is the main improvement of WPA3 over WPA2?', a:'Stronger encryption and protection against offline password-guessing attacks.'},
+    {id:331, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is a trojan horse?', a:'Malware disguised as legitimate software to trick users into installing it.'},
+    {id:332, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is a rootkit?', a:'Malware that hides deep in the system to maintain hidden, persistent access.'},
+    {id:333, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is spyware?', a:'Malware that secretly monitors and collects user activity or information.'},
+    {id:334, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is ransomware?', a:'Malware that encrypts a victim\'s data and demands payment for the decryption key.'},
+    {id:335, week:5, day:29, exam:'1202', ref:'§2.3–2.5', q:'What is the difference between phishing, tailgating, and shoulder surfing?', a:'Phishing is fraudulent messages tricking someone into giving up information; tailgating is following someone through a secured door without authorization; shoulder surfing is visually spying on entered credentials.'},
+    {id:336, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What are the general steps to remove malware?', a:'Identify symptoms, quarantine the system, disable System Restore, remediate (update and scan), schedule future scans, re-enable System Restore, and educate the user.'},
+    {id:337, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What does full device encryption protect against?', a:'Someone with physical access to a lost or stolen device reading its data.'},
+    {id:338, week:5, day:30, exam:'1202', ref:'§2.6–2.11', q:'What is a certificate of destruction?', a:'Documented proof that a storage device was properly and securely destroyed.'},
+    {id:347, week:5, day:30, exam:'1202', ref:'§2.10', q:'What does MAC filtering do on a SOHO network, and what is its weakness?', a:'It only allows approved MAC addresses to connect, but MAC addresses can be spoofed, so it is a weak standalone control.'},
+    {id:348, week:5, day:30, exam:'1202', ref:'§2.10', q:'Why disable remote management on a SOHO router?', a:'It prevents someone outside your network from accessing the router admin settings over the internet.'},
+    {id:349, week:5, day:30, exam:'1202', ref:'§2.10', q:'What is port forwarding, and why is it a security consideration?', a:'It lets external traffic reach a specific device/service inside your network, but it also opens a hole in your firewall, so only forward what is necessary.'},
+    {id:339, week:5, day:31, exam:'1202', ref:'§3.1–3.4', q:'What is a sensible first step for repeated BSoDs?', a:'Check Event Viewer for recent driver or hardware changes, and try booting into Safe Mode to isolate the cause.'},
+    {id:340, week:5, day:31, exam:'1202', ref:'§3.1–3.4', q:'What is the right response to a fake antivirus pop-up?', a:'Close it via Task Manager, run a scan with legitimate anti-malware software, and confirm the real AV is still intact.'},
+    {id:341, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'What is the difference between full, differential, and incremental backups?', a:'Full backs up everything; differential backs up everything changed since the last full; incremental backs up only what changed since the last backup of any type.'},
+    {id:342, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'What is the 3-2-1 backup rule?', a:'Keep 3 copies of data, on 2 different media types, with 1 copy stored offsite.'},
+    {id:343, week:5, day:32, exam:'1202', ref:'§4.1–4.5', q:'How do you prevent ESD damage?', a:'Use an anti-static wrist strap or mat and ground yourself before touching internal components.'},
+    {id:344, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What is chain of custody?', a:'A documented trail of who handled evidence, when, and how, to preserve its integrity.'},
+    {id:345, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What is order of volatility?', a:'The sequence for collecting evidence from most to least likely to be lost — typically RAM before disk before logs or backups.'},
+    {id:346, week:5, day:33, exam:'1202', ref:'§4.6–4.10', q:'What does a EULA define?', a:'The terms a user agrees to in order to legally use a piece of software.'},
+  ];;;;
+
+  let mastery = {};
+  let activeFilter = 1;
+  let activeDay = null;
+  let strugglingOnly = false;
+  let deck = [];
+  let pos = 0;
+  let flipped = false;
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function currentWeekByDate() {
+    const today = new Date();
+    const t = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+    const ranges = [
+      [1, '2026-06-19', '2026-06-25'], [2, '2026-06-26', '2026-07-02'],
+      [3, '2026-07-03', '2026-07-09'], [4, '2026-07-10', '2026-07-16'],
+      [5, '2026-07-17', '2026-07-23']
+    ];
+    for (const [w, start, end] of ranges) { if (t <= end) return w; }
+    return 5;
+  }
+
+  const DAY_DATES = {
+    1:'2026-06-19',2:'2026-06-20',3:'2026-06-21',4:'2026-06-22',5:'2026-06-23',6:'2026-06-24',7:'2026-06-25',
+    8:'2026-06-26',9:'2026-06-27',10:'2026-06-28',11:'2026-06-29',12:'2026-06-30',13:'2026-07-01',14:'2026-07-02',
+    15:'2026-07-03',16:'2026-07-04',17:'2026-07-05',18:'2026-07-06',19:'2026-07-07',20:'2026-07-08',21:'2026-07-09',
+    22:'2026-07-10',23:'2026-07-11',24:'2026-07-12',25:'2026-07-13',26:'2026-07-14',27:'2026-07-15',28:'2026-07-16',
+    29:'2026-07-17',30:'2026-07-18',31:'2026-07-19',32:'2026-07-20',33:'2026-07-21',34:'2026-07-22',35:'2026-07-23'
+  };
+  function currentDayId() {
+    const today = new Date();
+    const t = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+    const daysWithCards = [...new Set(CARDS.map(c => c.day))].sort((a,b)=>a-b);
+    let best = daysWithCards[0];
+    for (const d of daysWithCards) { if (DAY_DATES[d] <= t) best = d; else break; }
+    return best;
+  }
+
+  async function loadMastery() {
+    try {
+      const raw = localStorage.getItem('aplus-flashcards');
+      if (raw) mastery = JSON.parse(raw);
+    } catch (e) { mastery = {}; }
+  }
+  async function saveMastery() {
+    try { localStorage.setItem('aplus-flashcards', JSON.stringify(mastery)); } catch (e) {}
+  }
+
+  function shuffleArr(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function buildDeck() {
+    let pool = activeFilter === 'all' ? CARDS.slice() : CARDS.filter(c => c.week === activeFilter);
+    if (activeFilter !== 'all' && activeDay !== null) pool = pool.filter(c => c.day === activeDay);
+    if (strugglingOnly) pool = pool.filter(c => mastery[c.id] === false);
+    deck = pool;
+    pos = 0;
+    flipped = false;
+  }
+
+  function renderFilters() {
+    const wrap = self.querySelector('#fc-filters');
+    wrap.innerHTML = '';
+    const weeks = [1,2,3,4,5];
+    weeks.forEach(w => {
+      const b = document.createElement('button');
+      b.className = 'fc-chip' + (activeFilter === w ? ' active' : '');
+      b.textContent = 'Week ' + w;
+      b.addEventListener('click', () => { activeFilter = w; activeDay = null; buildDeck(); render(); });
+      wrap.appendChild(b);
+    });
+    const allBtn = document.createElement('button');
+    allBtn.className = 'fc-chip' + (activeFilter === 'all' ? ' active' : '');
+    allBtn.textContent = 'All';
+    allBtn.addEventListener('click', () => { activeFilter = 'all'; activeDay = null; buildDeck(); render(); });
+    wrap.appendChild(allBtn);
+
+    const strBtn = document.createElement('button');
+    strBtn.className = 'fc-chip struggling' + (strugglingOnly ? ' active' : '');
+    strBtn.textContent = 'Struggling only';
+    strBtn.addEventListener('click', () => { strugglingOnly = !strugglingOnly; buildDeck(); render(); });
+    wrap.appendChild(strBtn);
+
+    if (activeFilter !== 'all') {
+      const dayWrap = document.createElement('div');
+      dayWrap.className = 'fc-day-row';
+      const wholeBtn = document.createElement('button');
+      wholeBtn.className = 'fc-daychip' + (activeDay === null ? ' active' : '');
+      wholeBtn.textContent = 'Whole week';
+      wholeBtn.addEventListener('click', () => { activeDay = null; buildDeck(); render(); });
+      dayWrap.appendChild(wholeBtn);
+      const daysInWeek = [...new Set(CARDS.filter(c => c.week === activeFilter).map(c => c.day))].sort((a,b)=>a-b);
+      daysInWeek.forEach(d => {
+        const db = document.createElement('button');
+        db.className = 'fc-daychip' + (activeDay === d ? ' active' : '');
+        db.textContent = 'Day ' + d;
+        db.addEventListener('click', () => { activeDay = d; buildDeck(); render(); });
+        dayWrap.appendChild(db);
+      });
+      wrap.appendChild(dayWrap);
+    }
+  }
+
+  function renderStage() {
+    const inner = self.querySelector('#fc-stage-inner');
+    const counter = self.querySelector('#fc-counter');
+    inner.innerHTML = '';
+
+    if (deck.length === 0) {
+      counter.textContent = '';
+      const empty = document.createElement('div');
+      empty.className = 'fc-empty';
+      empty.textContent = strugglingOnly
+        ? 'Nothing marked "still shaky" in this view yet. Flip some cards and rate them honestly — the tricky ones will show up here.'
+        : 'No cards in this view.';
+      inner.appendChild(empty);
+      return;
+    }
+
+    counter.textContent = 'Card ' + (pos + 1) + ' of ' + deck.length;
+    const card = deck[pos];
+
+    const wrap = document.createElement('div');
+    wrap.className = 'fc-card-wrap';
+    const cardEl = document.createElement('div');
+    cardEl.className = 'fc-card' + (flipped ? ' flipped' : '');
+    cardEl.tabIndex = 0;
+    cardEl.innerHTML =
+      '<div class="fc-face front">' +
+        '<div class="fc-tab">' + card.exam + ' ' + card.ref + '</div>' +
+        '<div class="fc-label">Question</div>' +
+        '<div class="fc-text">' + card.q + '</div>' +
+        '<div class="fc-hint">Tap to reveal</div>' +
+      '</div>' +
+      '<div class="fc-face back">' +
+        '<div class="fc-tab">' + card.exam + ' ' + card.ref + '</div>' +
+        '<div class="fc-label">Answer</div>' +
+        '<div class="fc-text">' + card.a + '</div>' +
+      '</div>';
+    function toggleFlip() { flipped = !flipped; cardEl.classList.toggle('flipped', flipped); rateRow.classList.toggle('show', flipped); }
+    cardEl.addEventListener('click', toggleFlip);
+    cardEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFlip(); } });
+    wrap.appendChild(cardEl);
+    inner.appendChild(wrap);
+
+    const rateRow = document.createElement('div');
+    rateRow.className = 'fc-rate-row' + (flipped ? ' show' : '');
+    rateRow.innerHTML =
+      '<button class="fc-rate shaky">Still shaky</button>' +
+      '<button class="fc-rate got-it">Got it</button>';
+    rateRow.querySelector('.shaky').addEventListener('click', () => rate(card.id, false));
+    rateRow.querySelector('.got-it').addEventListener('click', () => rate(card.id, true));
+    inner.appendChild(rateRow);
+
+    const navRow = document.createElement('div');
+    navRow.className = 'fc-nav-row';
+    navRow.innerHTML =
+      '<button class="fc-nav-btn" id="fc-prev">‹ Prev</button>' +
+      '<button class="fc-nav-btn" id="fc-shuffle">Shuffle</button>' +
+      '<button class="fc-nav-btn" id="fc-next">Next ›</button>';
+    inner.appendChild(navRow);
+    navRow.querySelector('#fc-prev').addEventListener('click', () => { pos = (pos - 1 + deck.length) % deck.length; flipped = false; renderStage(); });
+    navRow.querySelector('#fc-next').addEventListener('click', () => { pos = (pos + 1) % deck.length; flipped = false; renderStage(); });
+    navRow.querySelector('#fc-shuffle').addEventListener('click', () => { deck = shuffleArr(deck); pos = 0; flipped = false; renderStage(); });
+  }
+
+  function rate(id, gotIt) {
+    mastery[id] = gotIt;
+    saveMastery();
+    if (strugglingOnly && gotIt) {
+      deck = deck.filter(c => c.id !== id);
+      if (pos >= deck.length) pos = 0;
+    } else {
+      pos = (pos + 1) % Math.max(deck.length, 1);
+    }
+    flipped = false;
+    renderStage();
+    renderFooter();
+  }
+
+  function renderFooter() {
+    const total = deck.length || 1;
+    const known = deck.filter(c => mastery[c.id] === true).length;
+    self.querySelector('#fc-progress-fill').style.width = Math.round((known / total) * 100) + '%';
+    self.querySelector('#fc-progress-text').textContent = known + ' / ' + deck.length + ' marked "got it"';
+  }
+
+  function render() {
+    renderFilters();
+    renderStage();
+    renderFooter();
+  }
+
+  self.querySelector('#fc-reset').addEventListener('click', () => {
+    if (confirm('Clear all "got it / still shaky" ratings? This cannot be undone.')) {
+      mastery = {};
+      saveMastery();
+      render();
+    }
+  });
+
+  (async function init() {
+    await loadMastery();
+    activeFilter = currentWeekByDate();
+    activeDay = currentDayId();
+    buildDeck();
+    render();
+  })();
+})();
+</script>
+
+</body>
+</html>
